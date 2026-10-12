@@ -170,16 +170,76 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }))));
   }
 
-  // ── Listy programowania / administracji ──
-  function ListView(_ref3) {
-    var id = _ref3.id,
-      onBack = _ref3.onBack,
+  // ── Asortymenty: piktogram grupy ──
+  function GroupsView(_ref3) {
+    var onBack = _ref3.onBack,
       ui = _ref3.ui;
+    useProductsVer();
     var _NP_DATA2 = NP_DATA,
-      LISTS = _NP_DATA2.LISTS,
-      CASHIERS = _NP_DATA2.CASHIERS,
-      GROUPS = _NP_DATA2.GROUPS,
-      PRODUCTS = _NP_DATA2.PRODUCTS;
+      GROUPS = _NP_DATA2.GROUPS;
+    var _useState = useState(null),
+      _useState2 = _slicedToArray(_useState, 2),
+      pick = _useState2[0],
+      setPick = _useState2[1];
+    var all = NP_DB.all();
+    return /*#__PURE__*/React.createElement("div", {
+      className: "np-sub"
+    }, /*#__PURE__*/React.createElement(SubHead, {
+      title: "Asortymenty",
+      sub: "Dotknij asortyment, aby przypisa\u0107 piktogram",
+      onBack: onBack
+    }), /*#__PURE__*/React.createElement(ScrollArea, {
+      className: "np-list-card",
+      more: false
+    }, GROUPS.map(function (g) {
+      return /*#__PURE__*/React.createElement("button", {
+        key: g.id,
+        className: "np-list-row grp",
+        onClick: function onClick() {
+          return setPick(g.id);
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "np-grp-ico"
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: g.icon
+      })), /*#__PURE__*/React.createElement("span", {
+        className: "np-list-main"
+      }, /*#__PURE__*/React.createElement("b", null, g.label), /*#__PURE__*/React.createElement("small", null, all.filter(function (p) {
+        return p.group === g.id;
+      }).length, " towar\xF3w \xB7 piktogram: ", ((window.PICTOGRAMS || []).find(function (x) {
+        return x.slug === g.icon;
+      }) || {}).pl || g.icon)), /*#__PURE__*/React.createElement("span", {
+        className: "np-list-val"
+      }, "Zmie\u0144"), /*#__PURE__*/React.createElement(Icon, {
+        name: "chevron-right"
+      }));
+    })), pick && /*#__PURE__*/React.createElement(PictogramPicker, {
+      title: 'Piktogram · ' + GROUPS.find(function (g) {
+        return g.id === pick;
+      }).label,
+      value: NP_DB.groupIcon(pick),
+      noneLabel: null,
+      onClose: function onClose() {
+        return setPick(null);
+      },
+      onPick: function onPick(slug) {
+        NP_DB.saveGroupIcon(pick, slug);
+        setPick(null);
+        ui.say('Piktogram asortymentu zapisany', 'ok', 'check');
+      }
+    }));
+  }
+
+  // ── Listy programowania / administracji ──
+  function ListView(_ref4) {
+    var id = _ref4.id,
+      onBack = _ref4.onBack,
+      ui = _ref4.ui;
+    var _NP_DATA3 = NP_DATA,
+      LISTS = _NP_DATA3.LISTS,
+      CASHIERS = _NP_DATA3.CASHIERS,
+      GROUPS = _NP_DATA3.GROUPS,
+      PRODUCTS = _NP_DATA3.PRODUCTS;
     var L = LISTS[id];
     if (id === 'operators') L = {
       title: 'Operatorzy',
@@ -235,10 +295,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   }
 
   // ── NoviCloud: konto kasy ──
-  function CloudCard(_ref4) {
-    var cloud = _ref4.cloud,
-      setCloud = _ref4.setCloud,
-      ui = _ref4.ui;
+  function CloudCard(_ref5) {
+    var cloud = _ref5.cloud,
+      setCloud = _ref5.setCloud,
+      ui = _ref5.ui;
     var nr = function () {
       try {
         var s = JSON.parse(localStorage.getItem('nextpro.settings') || '{}');
@@ -314,23 +374,23 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       name: "log-out"
     }), "Wyloguj")));
   }
-  function MenuView(_ref5) {
-    var cashier = _ref5.cashier,
-      onAction = _ref5.onAction,
-      onLogout = _ref5.onLogout,
-      ui = _ref5.ui,
-      _ref5$exitLabel = _ref5.exitLabel,
-      exitLabel = _ref5$exitLabel === void 0 ? 'Wyloguj' : _ref5$exitLabel;
-    var _NP_DATA3 = NP_DATA,
-      MENU = _NP_DATA3.MENU;
+  function MenuView(_ref6) {
+    var cashier = _ref6.cashier,
+      onAction = _ref6.onAction,
+      onLogout = _ref6.onLogout,
+      ui = _ref6.ui,
+      _ref6$exitLabel = _ref6.exitLabel,
+      exitLabel = _ref6$exitLabel === void 0 ? 'Wyloguj' : _ref6$exitLabel;
+    var _NP_DATA4 = NP_DATA,
+      MENU = _NP_DATA4.MENU;
     var _useStored5 = useStored('menuCat', 'admin'),
       _useStored6 = _slicedToArray(_useStored5, 2),
       cat = _useStored6[0],
       setCat = _useStored6[1];
-    var _useState = useState(null),
-      _useState2 = _slicedToArray(_useState, 2),
-      sub = _useState2[0],
-      setSub = _useState2[1]; // null | {type:'settings'} | {type:'list', id}
+    var _useState3 = useState(null),
+      _useState4 = _slicedToArray(_useState3, 2),
+      sub = _useState4[0],
+      setSub = _useState4[1]; // null | {type:'settings'} | {type:'list', id}
     var _useStored7 = useStored('cloud', {
         logged: true,
         sync: true
@@ -367,9 +427,21 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         });
         return;
       }
+      if (a === 'goods') {
+        setSub({
+          type: 'goods'
+        });
+        return;
+      }
       onAction(it);
     };
     if (sub && sub.type === 'settings') return /*#__PURE__*/React.createElement(SettingsView, {
+      onBack: function onBack() {
+        return setSub(null);
+      },
+      ui: ui
+    });
+    if (sub && sub.type === 'list' && sub.id === 'groups') return /*#__PURE__*/React.createElement(GroupsView, {
       onBack: function onBack() {
         return setSub(null);
       },
@@ -382,6 +454,22 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       },
       ui: ui
     });
+    if (sub && sub.type === 'goods') return /*#__PURE__*/React.createElement("div", {
+      className: "np-sub"
+    }, /*#__PURE__*/React.createElement(SubHead, {
+      title: "Towary",
+      sub: "Programowanie \xB7 dotknij towar, aby go edytowa\u0107",
+      onBack: function onBack() {
+        return setSub(null);
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "np-sub-body"
+    }, /*#__PURE__*/React.createElement(GoodsView, {
+      manage: true,
+      ui: ui,
+      onEdit: ui.editProduct,
+      favs: ui.getFavs()
+    })));
     return /*#__PURE__*/React.createElement("div", {
       className: "np-menu"
     }, /*#__PURE__*/React.createElement("div", {

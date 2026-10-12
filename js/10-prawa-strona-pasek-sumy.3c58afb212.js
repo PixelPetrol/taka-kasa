@@ -30,6 +30,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   var pad4 = function pad4(n) {
     return String(n).padStart(4, '0');
   };
+
+  // Pasek sumy — zwarty: stan dokumentu tylko ikonami (NIP, faktura, rabat/narzut), bufor kodu i suma
   function SumCard(_ref) {
     var cashier = _ref.cashier,
       receiptNo = _ref.receiptNo,
@@ -39,6 +41,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       rdAmt = _ref.rdAmt,
       rcptDisc = _ref.rcptDisc,
       onClearRcptDisc = _ref.onClearRcptDisc,
+      onDocAdj = _ref.onDocAdj,
       nip = _ref.nip,
       invoice = _ref.invoice,
       buf = _ref.buf,
@@ -51,28 +54,33 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       lastEvent = buf.lastEvent;
     var hasInput = entry || qty || priceOv != null || fMode || mode;
     var txt = NPF.money(total);
-    var fs = txt.length <= 6 ? 70 : txt.length <= 8 ? 64 : txt.length <= 10 ? 54 : 46;
+    var fs = txt.length <= 6 ? 68 : txt.length <= 8 ? 64 : txt.length <= 10 ? 54 : 46;
+    var ini = cashier.name.split(' ').map(function (s) {
+      return s[0];
+    }).join('').slice(0, 2);
+    var adj = rcptDisc && rdAmt !== 0;
+    var adjTxt = adj ? "".concat(rdAmt < 0 ? 'narzut +' : 'rabat −').concat(NPF.money(Math.abs(rdAmt))).concat(rcptDisc.type === 'pct' ? ' (' + String(rcptDisc.v).replace('.', ',') + '%)' : '') : '';
     return /*#__PURE__*/React.createElement("div", {
-      className: 'np-sumcard' + (scanFlash ? ' scan' : '')
+      className: 'np-sumcard cmp' + (scanFlash ? ' scan' : '')
     }, /*#__PURE__*/React.createElement("div", {
-      className: "np-sum-meta"
+      className: "np-sum-head"
     }, /*#__PURE__*/React.createElement("span", {
-      className: "np-sum-cashier"
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "user"
-    }), cashier.name), /*#__PURE__*/React.createElement("span", {
-      className: "np-sum-doc"
-    }, invoice && /*#__PURE__*/React.createElement("i", {
-      className: "np-tag ink"
-    }, "Faktura"), nip && /*#__PURE__*/React.createElement("i", {
-      className: "np-tag"
-    }, "NIP ", NPF.nip(nip)), /*#__PURE__*/React.createElement("span", null, "Paragon ", pad4(receiptNo)))), /*#__PURE__*/React.createElement("div", {
+      className: "np-sum-who"
+    }, /*#__PURE__*/React.createElement("i", {
+      style: {
+        background: cashier.color
+      }
+    }, ini), /*#__PURE__*/React.createElement("b", null, cashier.name)), /*#__PURE__*/React.createElement("span", {
+      className: "np-sum-no"
+    }, "Paragon ", pad4(receiptNo))), /*#__PURE__*/React.createElement("div", {
+      className: "np-sum-top"
+    }, /*#__PURE__*/React.createElement("div", {
       className: "np-buffer"
     }, hasInput ? /*#__PURE__*/React.createElement(React.Fragment, null, mode && /*#__PURE__*/React.createElement("span", {
       className: 'np-chip m-' + mode
     }, /*#__PURE__*/React.createElement(Icon, {
       name: mode === 'return' ? 'recycle' : 'search'
-    }), mode === 'return' ? 'Zwrot' : 'Sprawdź cenę'), qty && /*#__PURE__*/React.createElement("span", {
+    }), mode === 'return' ? 'Zwrot' : 'Cena?'), qty && /*#__PURE__*/React.createElement("span", {
       className: "np-chip c-qty"
     }, NPF.qty(qty.v, qty.unit), qty.unit === 'kg' ? ' kg' : '', " \xD7"), priceOv != null && /*#__PURE__*/React.createElement("span", {
       className: "np-chip c-price"
@@ -89,24 +97,39 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       name: EV_ICON[lastEvent.kind] || 'check'
     }), lastEvent.code && /*#__PURE__*/React.createElement("code", null, lastEvent.code), /*#__PURE__*/React.createElement("span", null, lastEvent.text)) : /*#__PURE__*/React.createElement("span", {
       className: "np-buffer-ph"
-    }, "Wpisz kod lub zeskanuj towar")), /*#__PURE__*/React.createElement("div", {
+    }, "Wpisz kod lub zeskanuj"))), /*#__PURE__*/React.createElement("div", {
       className: "np-total-row"
-    }, /*#__PURE__*/React.createElement("span", {
-      className: "np-total-label"
-    }, "Suma", /*#__PURE__*/React.createElement("small", null, count ? "".concat(count, " ").concat(plural(count)) : 'brak pozycji')), /*#__PURE__*/React.createElement("span", {
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-sum-flags"
+    }, nip && /*#__PURE__*/React.createElement("span", {
+      className: "np-flag f-nip",
+      title: 'NIP ' + NPF.nip(nip)
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "user"
+    })), invoice && /*#__PURE__*/React.createElement("span", {
+      className: "np-flag f-fv",
+      title: "Faktura"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "file-text"
+    })), /*#__PURE__*/React.createElement("button", {
+      className: 'np-flag f-adj' + (adj ? rdAmt < 0 ? ' up' : ' on' : ''),
+      onClick: onDocAdj,
+      disabled: !count,
+      title: "Rabat / narzut na paragon",
+      "aria-label": "Rabat / narzut na paragon"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: adj && rdAmt < 0 ? 'trending-up' : 'percent'
+    })), /*#__PURE__*/React.createElement("span", {
+      className: "np-sum-sub"
+    }, adj ? /*#__PURE__*/React.createElement("em", {
+      className: rdAmt < 0 ? 'up' : ''
+    }, adjTxt) : count ? "".concat(count, " ").concat(plural(count)) : 'brak pozycji')), /*#__PURE__*/React.createElement("span", {
       className: "np-total",
       key: txt,
       style: {
         fontSize: fs
       }
-    }, txt, /*#__PURE__*/React.createElement("small", null, "z\u0142"))), rdAmt > 0 && /*#__PURE__*/React.createElement("div", {
-      className: "np-sum-disc"
-    }, /*#__PURE__*/React.createElement("span", null, "Rabat na paragon", rcptDisc.type === 'pct' ? " ".concat(rcptDisc.v, "%") : '', " ", /*#__PURE__*/React.createElement("em", null, "\xB7 przed rabatem ", NPF.money(subtotal), " z\u0142")), /*#__PURE__*/React.createElement("b", null, "\u2212", NPF.money(rdAmt), " z\u0142"), /*#__PURE__*/React.createElement("button", {
-      onClick: onClearRcptDisc,
-      "aria-label": "Usu\u0144 rabat"
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "x"
-    }))));
+    }, txt, /*#__PURE__*/React.createElement("small", null, "z\u0142"))));
   }
   function ReceiptLine(_ref2) {
     var l = _ref2.l,
@@ -167,7 +190,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     };
     var total = NPF.round2(l.qty * l.price * (1 - (l.adj || 0) / 100));
     var isKg = l.unit === 'kg';
-    var one = Math.abs(l.qty) === 1;
+    var canDec = Math.abs(l.qty) > 1;
     var sg = Math.sign(l.qty) || 1;
     return /*#__PURE__*/React.createElement("div", {
       className: 'np-line-wrap' + (flash ? ' flash' : ''),
@@ -183,18 +206,28 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "trash-2"
     }), "Storno"), /*#__PURE__*/React.createElement("div", {
-      className: 'np-line' + (sel ? ' sel' : '') + (drag ? ' dragging' : '') + (l.qty < 0 ? ' ret' : ''),
+      className: 'np-line qb' + (sel ? ' sel' : '') + (drag ? ' dragging' : '') + (l.qty < 0 ? ' ret' : ''),
       style: {
         transform: "translateX(".concat(dx, "px)")
       },
       onPointerDown: onDown
+    }, /*#__PURE__*/React.createElement("button", {
+      className: 'np-qb' + (canDec ? '' : ' del'),
+      onClick: function onClick() {
+        return canDec ? onQty(l.id, -sg) : onRemove(l.id);
+      },
+      "aria-label": canDec ? 'Mniej' : 'Usuń'
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "np-qb-in"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: canDec ? 'minus' : 'trash-2'
+    }))), /*#__PURE__*/React.createElement("div", {
+      className: "np-line-body"
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-line-r1"
     }, /*#__PURE__*/React.createElement("span", {
       className: "np-line-name"
-    }, l.qty < 0 && /*#__PURE__*/React.createElement("em", null, "Zwrot \xB7 "), l.name), /*#__PURE__*/React.createElement("span", {
-      className: "np-line-total"
-    }, NPF.money(total))), /*#__PURE__*/React.createElement("div", {
+    }, l.qty < 0 && /*#__PURE__*/React.createElement("em", null, "Zwrot \xB7 "), l.name)), /*#__PURE__*/React.createElement("div", {
       className: "np-line-r2"
     }, /*#__PURE__*/React.createElement("span", {
       className: "np-line-calc"
@@ -203,31 +236,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }, "nowa cena"), l.adj ? /*#__PURE__*/React.createElement("i", {
       className: 'np-adj' + (l.adj < 0 ? ' up' : '')
     }, l.adj > 0 ? 'rabat −' : 'narzut +', Math.abs(l.adj), "%") : null), /*#__PURE__*/React.createElement("span", {
-      className: "np-stepper"
-    }, !isKg ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
-      className: one ? 'del' : '',
-      onClick: function onClick() {
-        return one ? onRemove(l.id) : onQty(l.id, -sg);
-      },
-      "aria-label": one ? 'Usuń' : 'Mniej'
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: one ? 'trash-2' : 'minus'
-    })), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        return onQty(l.id, sg);
-      },
-      "aria-label": "Wi\u0119cej"
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "plus"
-    }))) : /*#__PURE__*/React.createElement("button", {
-      className: "del",
-      onClick: function onClick() {
-        return onRemove(l.id);
-      },
-      "aria-label": "Usu\u0144"
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "trash-2"
-    })))), sel && /*#__PURE__*/React.createElement("div", {
+      className: "np-line-total"
+    }, NPF.money(total))), sel && /*#__PURE__*/React.createElement("div", {
       className: "np-line-actions"
     }, /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
@@ -254,11 +264,23 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "undo-2"
-    }), "Storno"))));
+    }), "Storno"))), /*#__PURE__*/React.createElement("button", {
+      className: "np-qb plus",
+      onClick: function onClick() {
+        return onQty(l.id, sg);
+      },
+      "aria-label": "Wi\u0119cej"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "np-qb-in"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "plus"
+    })))));
   }
   var ReceiptLineM = React.memo(ReceiptLine);
   function ReceiptPane(props) {
-    var lines = props.lines,
+    var _props$qtyStyle = props.qtyStyle,
+      qtyStyle = _props$qtyStyle === void 0 ? 'pill' : _props$qtyStyle,
+      lines = props.lines,
       selId = props.selId,
       onSelLine = props.onSelLine,
       flashId = props.flashId,
@@ -295,7 +317,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     })), /*#__PURE__*/React.createElement("div", {
       className: "np-lines-card"
     }, /*#__PURE__*/React.createElement("div", {
-      className: "np-lines",
+      className: 'np-lines qs-' + qtyStyle,
       ref: listRef
     }, lines.length === 0 ? /*#__PURE__*/React.createElement("div", {
       className: "np-empty"

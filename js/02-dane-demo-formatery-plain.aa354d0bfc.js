@@ -46,6 +46,8 @@
     [24, 'Cola 0,5 l', 4.49, 'A', 'napoje', 'szt', 'cup-soda'],
     [25, 'Herbata mrożona brzoskwinia 0,5 l', 3.99, 'A', 'napoje', 'szt', 'cup-soda'],
     [26, 'Piwo jasne pełne 0,5 l', 3.79, 'A', 'napoje', 'szt', 'beer'],
+    [27, 'Wino czerwone wytrawne 0,75 l', 24.99, 'A', 'napoje', 'szt', 'wine'],
+    [28, 'Wódka czysta 0,5 l', 32.99, 'A', 'napoje', 'szt', 'martini'],
     [30, 'Banany', 5.99, 'C', 'warzywa', 'kg', 'banana'],
     [31, 'Jabłka Ligol', 3.49, 'C', 'warzywa', 'kg', 'apple'],
     [32, 'Pomidory malinowe', 12.99, 'C', 'warzywa', 'kg', 'salad'],
@@ -88,10 +90,62 @@
     plu: String(plu), ean: ean13('5904811' + String(plu).padStart(5, '0')), name, price, vat, group, unit, icon,
   }));
 
+  // ── Baza towarów (edytowalna, zapis w localStorage: nextpro.products) ──
+  const PRODUCT_TYPES = ['Towar', 'Opakowanie', 'Usługa', 'Doładowanie', 'Paliwo', 'Winietka', 'Zestaw', 'Receptura'];
+  const PRICE_MODES = ['Otwarta', 'Zamknięta', 'Tylko w górę', 'Tylko w dół'];
+  const GTU = ['(brak)'].concat(Array.from({ length: 13 }, (_, i) => 'GTU_' + String(i + 1).padStart(2, '0')));
+  const UNITS = ['szt', 'kg', 'l', 'm', 'opak'];
+  const UNIT_PREC = { szt: 1, kg: 0.001, l: 0.001, m: 0.01, opak: 1 };
+  const PRECS = [['jm', 'zdefiniowana w jednostce miary'], ['1', '1 — tylko całe sztuki'], ['0.1', '0,1'], ['0.01', '0,01'], ['0.001', '0,001 — towar na wagę']];
+  const withDefaults = (p) => Object.assign({
+    priceH: '', priceN: '', priceD: '', type: p.group === 'kaucje' ? 'Opakowanie' : 'Towar', priceMode: 'Otwarta', pkwiu: '', gtu: '(brak)',
+    prec: 'jm', pack: null, packN: 1, desc: ['', '', '', '', ''], printers: { kasa: false, e1: false, e2: false, e3: false }, attrs: '', stock: 0,
+    excise: p.group === 'napoje' && /piwo|wino|wódka/i.test(p.name), weighed: p.unit === 'kg', mpp: false, active: true,
+  }, p);
+  try {
+    const st = JSON.parse(localStorage.getItem('nextpro.products') || 'null');
+    if (Array.isArray(st) && st.length) { const base = PRODUCTS.slice(); PRODUCTS.length = 0; st.forEach((p) => PRODUCTS.push(p)); base.forEach((b) => { if (!st.some((x) => x.plu === b.plu)) PRODUCTS.push(b); }); }
+  } catch (e) {}
+  for (let i = 0; i < PRODUCTS.length; i++) PRODUCTS[i] = withDefaults(PRODUCTS[i]);
+  // piktogramy asortymentów ustawione przez użytkownika
+  try { const gi = JSON.parse(localStorage.getItem('nextpro.groupIcons') || '{}') || {}; GROUPS.forEach((g) => { if (gi[g.id]) g.icon = gi[g.id]; }); } catch (e) {}
+  const BY = {};
+  const reindex = () => { Object.keys(BY).forEach((k) => delete BY[k]); PRODUCTS.forEach((p) => { BY[p.plu] = p; }); };
+  reindex();
+  let ver = 0;
+  const NP_DB = {
+    get: (plu) => BY[plu],
+    all: () => PRODUCTS,
+    ver: () => ver,
+    precOf: (p) => (p.prec && p.prec !== 'jm' ? +p.prec : (UNIT_PREC[p.unit] || 1)),
+    blank: () => withDefaults({ plu: '', ean: '', name: '', price: '', vat: 'A', group: GROUPS[0].id, unit: 'szt', icon: null }),
+    nextPlu: () => String(Math.max(0, ...PRODUCTS.map((p) => +p.plu || 0)) + 1),
+    genEan: (plu) => ean13('5904811' + String(plu || '0').padStart(5, '0').slice(-5)),
+    groupIcon: (id) => { const g = GROUPS.find((x) => x.id === id); return g ? g.icon : null; },
+    // piktogram towaru: własny (pict) → z asortymentu
+    pictOf: (p) => (p && p.pict && p.pict !== 'none' ? p.pict : null),
+    listIcon: (p) => (p && p.pict && p.pict !== 'none' ? p.pict : (p && p.icon) || NP_DB.groupIcon(p && p.group) || 'package'),
+    saveGroupIcon(id, icon) {
+      const g = GROUPS.find((x) => x.id === id); if (!g) return;
+      g.icon = icon || g.icon;
+      try { const gi = JSON.parse(localStorage.getItem('nextpro.groupIcons') || '{}') || {}; gi[id] = g.icon; localStorage.setItem('nextpro.groupIcons', JSON.stringify(gi)); } catch (e) {}
+      ver++; window.dispatchEvent(new Event('np-products'));
+    },
+    save(p) {
+      const i = PRODUCTS.findIndex((x) => x.plu === p.plu);
+      if (i >= 0) PRODUCTS[i] = p; else PRODUCTS.push(p);
+      reindex(); ver++;
+      try { localStorage.setItem('nextpro.products', JSON.stringify(PRODUCTS)); } catch (e) {}
+      window.dispatchEvent(new Event('np-products'));
+    },
+  };
+  window.NP_DB = NP_DB;
+
   // Funkcje — f = numer funkcji F, tile = podpis na kafelku
   const FUNCS = [
     { id: 'rabat10', f: 1, name: 'Rabat 10%', tile: 'Rabat\n10%', icon: 'percent', color: 'red', cat: 'Rabaty' },
     { id: 'rabatLista', f: 2, name: 'Rabat z listy', tile: 'Rabat\nz listy', icon: 'badge-percent', color: 'red', cat: 'Rabaty' },
+    { id: 'rabatDok', f: 28, name: 'Rabat / narzut na paragon', tile: 'Rabat\nna paragon', icon: 'badge-percent', color: 'red', cat: 'Rabaty' },
     { id: 'rabat10zl', f: 3, name: 'Rabat 10 zł na paragon', tile: 'Rabat\n10 zł', icon: 'tag', color: 'red', cat: 'Rabaty' },
     { id: 'narzut', f: 4, name: 'Narzut %', tile: 'Narzut', icon: 'trending-up', color: 'red', cat: 'Rabaty' },
     { id: 'storno', f: 5, name: 'Storno pozycji', tile: 'Storno', icon: 'undo-2', color: 'graphite', cat: 'Paragon' },
@@ -133,7 +187,7 @@
       F('rabat10zl'), F('cena'), F('zwrot'), F('nip'), F('szuflada'), F('rdob'),
     ]) },
     { name: 'Pieczywo i nabiał', slots: fill([P(1), P(2), P(3), P(4), P(5), P(6), P(7), _, _, _, _, _, P(10), P(11), P(12), P(13), P(14), P(15), P(16), P(17)]) },
-    { name: 'Napoje i słodycze', slots: fill([P(20), P(21), P(22), P(23), P(24), P(25), P(26), P(80), P(81), P(82), _, _, P(40), P(41), P(42), P(43), P(44), P(45)]) },
+    { name: 'Napoje i słodycze', slots: fill([P(20), P(21), P(22), P(23), P(24), P(25), P(26), P(80), P(81), P(82), P(27), P(28), P(40), P(41), P(42), P(43), P(44), P(45)]) },
     { name: 'Warzywa, owoce, mięso', slots: fill([P(30), P(31), P(32), P(33), P(34), P(35), P(36), P(37), P(38), P(39), _, _, P(60), P(61), P(62), P(63), P(64)]) },
     { name: 'Strona 5', slots: fill([]) },
   ];
@@ -185,7 +239,7 @@
       { label: 'Formy płatności', icon: 'wallet-cards', action: 'list:payments' },
       { label: 'Waluty', icon: 'coins', action: 'list:currencies' },
       { label: 'Asortymenty', icon: 'boxes', action: 'list:groups' },
-      { label: 'Towary', icon: 'package', action: 'goGoods' },
+      { label: 'Towary', icon: 'package', action: 'goods' },
       { label: 'Formaty kodów wagowych', icon: 'barcode', action: 'list:scalecodes' },
       { label: 'Usługi gastro', icon: 'utensils', action: 'list:gastro' },
       { label: 'Klienci', icon: 'users', action: 'list:clients' },
@@ -219,6 +273,8 @@
       { id: 'uiScale', label: 'Wielkość interfejsu', type: 'select', def: '100% (standard)', options: ['90% — więcej miejsca', '100% (standard)', '110%', '120%'], desc: 'Powiększa lub pomniejsza cały ekran: kafelki, klawisze, teksty i odstępy razem, w tych samych proporcjach. Przy większych wartościach mieści się mniej pozycji naraz.' },
       { id: 'textScale', label: 'Wielkość tekstu', type: 'select', def: '100% (standard)', options: ['90%', '100% (standard)', '110%', '120%'], desc: 'Zmienia tylko wielkość napisów. Duże liczby (suma, kwota do zapłaty) i układ ekranu zostają bez zmian, długie nazwy są skracane wielokropkiem.' },
       { id: 'nrKasy', label: 'Numer kasy', type: 'num', def: 1, max: 3, desc: 'Numer kasy, pod jakim będą zapisywane dokumenty w bazie. Służy również do identyfikacji kasy dla zewnętrznych programów.' },
+      { id: 'tilePrices', label: 'Ceny na kafelkach towarów', type: 'toggle', def: false, desc: 'WYŁ (domyślnie) – kafelek pokazuje tylko nazwę towaru, większą i czytelniejszą. WŁ – pod nazwą wyświetlana jest cena.' },
+      { id: 'paySummary', label: 'Podsumowanie po zakończeniu paragonu', type: 'toggle', def: true, desc: 'WŁ (domyślnie) – po wydruku pokazuje podsumowanie: suma, formy płatności, reszta. WYŁ – po informacji o drukowaniu kasa od razu przechodzi do nowego paragonu (przy reszcie do wydania i tak ją pokaże).' },
       { id: 'kontrolaStanow', label: 'Kontrola stanów mag.', type: 'toggle', def: false, desc: 'WYŁ (domyślnie) – program pozwoli na sprzedaż poniżej zerowego stanu magazynowego. WŁ – w karcie towaru należy najpierw wprowadzić niezerowy stan magazynowy. Przy sprzedaży program będzie za każdym razem ściągał sprzedaną ilość ze stanu.' },
       { id: 'obcinacz', label: 'Obcinacz drukarki', type: 'select', def: 'Częściowe cięcie', options: ['Pełne cięcie', 'Częściowe cięcie', 'Wyłączony'], desc: 'Sposób obsługi obcinacza drukarki.' },
       { id: 'infoKopiaFv', label: 'Informacja o wydruku kopii FV', type: 'toggle', def: false, desc: 'Informacja o wydruku między wydrukami faktury FV.' },
@@ -313,6 +369,6 @@
   let _uid = Date.now() % 100000;
   const uid = () => 'l' + (++_uid).toString(36);
 
-  window.NP_DATA = { PRODUCTS, GROUPS, FUNCS, TILE_COLORS, DEFAULT_PAGES, DEFAULT_FAVS, DEFAULT_FPAGES, DEFAULT_KBROW, DEFAULT_FKEY, DEFAULT_QPAY, MENU, SETTINGS, LISTS, CASHIERS, SHOP, VAT };
+  window.NP_DATA = { PRODUCT_TYPES, PRICE_MODES, GTU, UNITS, PRECS, PRODUCTS, GROUPS, FUNCS, TILE_COLORS, DEFAULT_PAGES, DEFAULT_FAVS, DEFAULT_FPAGES, DEFAULT_KBROW, DEFAULT_FKEY, DEFAULT_QPAY, MENU, SETTINGS, LISTS, CASHIERS, SHOP, VAT };
   window.NPF = { round2, money, qty, parseNum, norm, dateLong, dateFull, time, nip, uid };
 })();

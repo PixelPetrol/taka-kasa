@@ -46,7 +46,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     } catch (e) {}
     return {
       ui: pct(s.uiScale),
-      text: pct(s.textScale)
+      text: pct(s.textScale),
+      prices: s.tilePrices === true
     };
   }
   function useUiPrefs() {
@@ -102,7 +103,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-screen-wrap"
     }, /*#__PURE__*/React.createElement("div", {
-      className: "np-screen",
+      className: 'np-screen' + (prefs.prices ? ' np-show-prices' : ''),
       ref: scrRef,
       "data-screen-label": "Taka Kasa",
       style: {
@@ -225,6 +226,19 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }
     }), /*#__PURE__*/React.createElement(TweakSection, {
       label: "Uk\u0142ad ekranu sprzeda\u017Cy"
+    }), /*#__PURE__*/React.createElement(TweakRadio, {
+      label: "Przyciski \u2212 / + na paragonie",
+      value: t.qtyStyle || 'pill',
+      options: [{
+        value: 'pill',
+        label: 'Pigułki'
+      }, {
+        value: 'slab',
+        label: 'Płyty'
+      }],
+      onChange: function onChange(v) {
+        return setTweak('qtyStyle', v);
+      }
     }), /*#__PURE__*/React.createElement(TweakRadio, {
       label: "Paragon",
       value: t.receipt,

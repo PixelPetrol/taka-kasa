@@ -31,12 +31,21 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     DEFAULT_PAGES = _NP_DATA.DEFAULT_PAGES,
     DEFAULT_FAVS = _NP_DATA.DEFAULT_FAVS,
     SHOP = _NP_DATA.SHOP;
-  var PBY = Object.fromEntries(PRODUCTS.map(function (p) {
-    return [p.plu, p];
-  }));
   var FBY = Object.fromEntries(FUNCS.map(function (f) {
     return [f.id, f];
   }));
+  // Klawisz F: cyfry 7-8-9 / 4-5-6 / 1-2-3 → pola 3×3 funkcji F
+  var F_IDX = {
+    7: 0,
+    8: 1,
+    9: 2,
+    4: 3,
+    5: 4,
+    6: 5,
+    1: 6,
+    2: 7,
+    3: 8
+  };
   var BUF0 = {
     entry: '',
     qty: null,
@@ -64,15 +73,147 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   var readScale = function readScale() {
     return Math.round((0.18 + Math.random() * 1.4) * 1000) / 1000;
   };
-  function RabatSheet(_ref) {
-    var line = _ref.line,
+
+  // Rabat / narzut na cały dokument: procent lub kwota, podgląd sumy po zmianie
+  function DocAdjSheet(_ref) {
+    var subtotal = _ref.subtotal,
+      current = _ref.current,
       onApply = _ref.onApply,
-      onCustom = _ref.onCustom,
+      onRemove = _ref.onRemove,
       onCancel = _ref.onCancel;
-    var _useState = useState(line ? 'line' : 'rcpt'),
+    var _useState = useState(current && current.up ? 'up' : 'down'),
       _useState2 = _slicedToArray(_useState, 2),
-      scope = _useState2[0],
-      setScope = _useState2[1];
+      kind = _useState2[0],
+      setKind = _useState2[1];
+    var _useState3 = useState(current ? current.type : 'pct'),
+      _useState4 = _slicedToArray(_useState3, 2),
+      mode = _useState4[0],
+      setMode = _useState4[1];
+    var _useState5 = useState(current ? String(current.v).replace('.', ',') : ''),
+      _useState6 = _slicedToArray(_useState5, 2),
+      v = _useState6[0],
+      setV = _useState6[1];
+    var num = v ? NPF.parseNum(v) : 0;
+    var amt = !(num > 0) ? 0 : NPF.round2(mode === 'pct' ? subtotal * num / 100 : num);
+    var err = !v ? null : !(num > 0) ? 'Wpisz wartość większą od zera' : mode === 'pct' && num >= 100 ? 'Procent musi być mniejszy niż 100' : kind === 'down' && amt >= subtotal ? 'Rabat nie może przekroczyć sumy paragonu' : null;
+    var ok = v && !err;
+    var after = NPF.round2(kind === 'down' ? subtotal - amt : subtotal + amt);
+    var apply = function apply() {
+      if (ok) onApply({
+        type: mode,
+        v: num,
+        up: kind === 'up'
+      });
+    };
+    var push = function push(k) {
+      return setV(function (c) {
+        if (k === 'BACK') return c.slice(0, -1);
+        if (k === ',') return c.includes(',') ? c : (c || '0') + ',';
+        if (!/^[0-9]$/.test(k)) return c;
+        var _c$split = c.split(','),
+          _c$split2 = _slicedToArray(_c$split, 2),
+          i = _c$split2[0],
+          d = _c$split2[1];
+        if (d !== undefined) return d.length >= 2 ? c : c + k;
+        if (i.length >= (mode === 'pct' ? 2 : 6)) return c;
+        return (c === '0' ? '' : c) + k;
+      });
+    };
+    useKeys(function (k) {
+      if (/^[0-9]$/.test(k) || k === ',' || k === 'BACK') push(k);else if (k === 'OK' || k === 'RAZEM') apply();else if (k === 'ESC') {
+        if (v) setV('');else onCancel();
+      }
+      return true;
+    }, 30);
+    var presets = mode === 'pct' ? [5, 10, 15, 20, 25, 50] : [5, 10, 20, 50];
+    var word = kind === 'down' ? 'Rabat' : 'Narzut';
+    return /*#__PURE__*/React.createElement(Sheet, {
+      className: "np-docadj",
+      onClose: onCancel
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-docadj-l"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-amount-title"
+    }, word, " na paragon"), /*#__PURE__*/React.createElement("div", {
+      className: "np-seg full"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: kind === 'down' ? 'on' : '',
+      onClick: function onClick() {
+        return setKind('down');
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "percent"
+    }), "Rabat"), /*#__PURE__*/React.createElement("button", {
+      className: kind === 'up' ? 'on' : '',
+      onClick: function onClick() {
+        return setKind('up');
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "trending-up"
+    }), "Narzut")), /*#__PURE__*/React.createElement("div", {
+      className: "np-seg full"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: mode === 'pct' ? 'on' : '',
+      onClick: function onClick() {
+        setMode('pct');
+        setV('');
+      }
+    }, "Procent %"), /*#__PURE__*/React.createElement("button", {
+      className: mode === 'amt' ? 'on' : '',
+      onClick: function onClick() {
+        setMode('amt');
+        setV('');
+      }
+    }, "Kwota z\u0142")), /*#__PURE__*/React.createElement("div", {
+      className: "np-docadj-pre"
+    }, presets.map(function (p) {
+      return /*#__PURE__*/React.createElement("button", {
+        key: p,
+        className: num === p ? 'on' : '',
+        onClick: function onClick() {
+          return setV(String(p));
+        }
+      }, mode === 'pct' ? p + '%' : p + ' zł');
+    })), /*#__PURE__*/React.createElement("div", {
+      className: "np-docadj-sum"
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Suma pozycji"), /*#__PURE__*/React.createElement("b", null, NPF.money(subtotal), " z\u0142")), /*#__PURE__*/React.createElement("div", {
+      className: kind === 'down' ? 'neg' : 'pos'
+    }, /*#__PURE__*/React.createElement("span", null, word, mode === 'pct' && num > 0 ? ' ' + String(num).replace('.', ',') + '%' : ''), /*#__PURE__*/React.createElement("b", null, kind === 'down' ? '−' : '+', NPF.money(amt), " z\u0142")), /*#__PURE__*/React.createElement("div", {
+      className: "tot"
+    }, /*#__PURE__*/React.createElement("span", null, "Do zap\u0142aty"), /*#__PURE__*/React.createElement("b", null, NPF.money(ok ? after : subtotal), " z\u0142")))), /*#__PURE__*/React.createElement("div", {
+      className: "np-docadj-r"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: 'np-amount-field' + (err ? ' err' : '')
+    }, v ? /*#__PURE__*/React.createElement("span", null, v) : /*#__PURE__*/React.createElement("span", {
+      className: "ph"
+    }, "0"), /*#__PURE__*/React.createElement("small", null, mode === 'pct' ? '%' : 'zł')), /*#__PURE__*/React.createElement("div", {
+      className: "np-amount-err"
+    }, err || ''), /*#__PURE__*/React.createElement(NumPad, {
+      onKey: push,
+      className: "on-gray"
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "np-sheet-actions"
+    }, current ? /*#__PURE__*/React.createElement("button", {
+      className: "np-btn red",
+      onClick: onRemove
+    }, "Usu\u0144 ", current.up ? 'narzut' : 'rabat') : /*#__PURE__*/React.createElement("button", {
+      className: "np-btn",
+      onClick: onCancel
+    }, "Anuluj"), /*#__PURE__*/React.createElement("button", {
+      className: 'np-btn ' + (kind === 'down' ? 'green' : 'ink'),
+      disabled: !ok,
+      onClick: apply
+    }, "Zastosuj"))));
+  }
+  function RabatSheet(_ref2) {
+    var line = _ref2.line,
+      onApply = _ref2.onApply,
+      onCustom = _ref2.onCustom,
+      onCancel = _ref2.onCancel;
+    var _useState7 = useState(line ? 'line' : 'rcpt'),
+      _useState8 = _slicedToArray(_useState7, 2),
+      scope = _useState8[0],
+      setScope = _useState8[1];
     useKeys(function (k) {
       if (k === 'ESC') onCancel();
       return true;
@@ -118,16 +259,16 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }
     }, "Inna warto\u015B\u0107\u2026")));
   }
-  function SaleScreen(_ref2) {
-    var cashier = _ref2.cashier,
-      tweaks = _ref2.tweaks,
-      onTweak = _ref2.onTweak,
-      onLogout = _ref2.onLogout,
-      onLock = _ref2.onLock,
-      onPowerOff = _ref2.onPowerOff,
-      onRestart = _ref2.onRestart,
-      _ref2$menuOnly = _ref2.menuOnly,
-      menuOnly = _ref2$menuOnly === void 0 ? false : _ref2$menuOnly;
+  function SaleScreen(_ref3) {
+    var cashier = _ref3.cashier,
+      tweaks = _ref3.tweaks,
+      onTweak = _ref3.onTweak,
+      onLogout = _ref3.onLogout,
+      onLock = _ref3.onLock,
+      onPowerOff = _ref3.onPowerOff,
+      onRestart = _ref3.onRestart,
+      _ref3$menuOnly = _ref3.menuOnly,
+      menuOnly = _ref3$menuOnly === void 0 ? false : _ref3$menuOnly;
     var _useStored = useStored('lines', []),
       _useStored2 = _slicedToArray(_useStored, 2),
       lines = _useStored2[0],
@@ -156,6 +297,47 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       _useStored12 = _slicedToArray(_useStored11, 2),
       pages = _useStored12[0],
       setPages = _useStored12[1];
+    useEffect(function () {
+      // jednorazowo: dodaj na panel „Napoje” kafelki towarów akcyzowych (wino, wódka)
+      try {
+        if (localStorage.getItem('nextpro.mig.excise')) return;
+        localStorage.setItem('nextpro.mig.excise', '1');
+      } catch (e) {
+        return;
+      }
+      setPages(function (ps) {
+        var has = function has(id) {
+          return ps.some(function (pg) {
+            return pg.slots.some(function (x) {
+              return x && x.t === 'p' && x.id === id;
+            });
+          });
+        };
+        var add = ['27', '28'].filter(function (id) {
+          return !has(id);
+        });
+        if (!add.length) return ps;
+        var ix = Math.max(0, ps.findIndex(function (pg) {
+          return /napoje/i.test(pg.name);
+        }));
+        return ps.map(function (pg, i) {
+          if (i !== ix) return pg;
+          var sl = pg.slots.slice();
+          add.forEach(function (id) {
+            var j = sl.findIndex(function (x) {
+              return !x;
+            });
+            if (j >= 0) sl[j] = {
+              t: 'p',
+              id: id
+            };
+          });
+          return _objectSpread(_objectSpread({}, pg), {}, {
+            slots: sl
+          });
+        });
+      });
+    }, []);
     var _useStored13 = useStored('fpages', NP_DATA.DEFAULT_FPAGES),
       _useStored14 = _slicedToArray(_useStored13, 2),
       fpages = _useStored14[0],
@@ -176,10 +358,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       _useStored22 = _slicedToArray(_useStored21, 2),
       qPay = _useStored22[0],
       setQPay = _useStored22[1];
-    var _useState3 = useState(false),
-      _useState4 = _slicedToArray(_useState3, 2),
-      fOpen = _useState4[0],
-      setFOpen = _useState4[1]; // false | 'run' | 'edit'
+    var _useState9 = useState(false),
+      _useState0 = _slicedToArray(_useState9, 2),
+      fOpen = _useState0[0],
+      setFOpen = _useState0[1]; // false | 'run' | 'edit'
     useEffect(function () {
       if (fpages.some(function (p) {
         return /^Funkcje F/.test(p.name);
@@ -203,10 +385,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       _useStored28 = _slicedToArray(_useStored27, 2),
       page = _useStored28[0],
       setPage = _useStored28[1];
-    var _useState5 = useState(BUF0),
-      _useState6 = _slicedToArray(_useState5, 2),
-      buf = _useState6[0],
-      setBufState = _useState6[1];
+    var _useState1 = useState(BUF0),
+      _useState10 = _slicedToArray(_useState1, 2),
+      buf = _useState10[0],
+      setBufState = _useState10[1];
     var bufRef = useRef(buf);
     var setBuf = function setBuf(patch) {
       var cur = bufRef.current;
@@ -220,38 +402,42 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       linesRef.current = next;
       setLines(next);
     };
-    var _useState7 = useState(null),
-      _useState8 = _slicedToArray(_useState7, 2),
-      lastEvent = _useState8[0],
-      setLastEventRaw = _useState8[1];
-    var _useState9 = useState(null),
-      _useState0 = _slicedToArray(_useState9, 2),
-      selId = _useState0[0],
-      setSelId = _useState0[1];
-    var _useState1 = useState(false),
-      _useState10 = _slicedToArray(_useState1, 2),
-      edit = _useState10[0],
-      setEdit = _useState10[1];
     var _useState11 = useState(null),
       _useState12 = _slicedToArray(_useState11, 2),
-      editSlot = _useState12[0],
-      setEditSlot = _useState12[1];
+      lastEvent = _useState12[0],
+      setLastEventRaw = _useState12[1];
     var _useState13 = useState(null),
       _useState14 = _slicedToArray(_useState13, 2),
-      sheet = _useState14[0],
-      setSheet = _useState14[1];
-    var _useState15 = useState(null),
+      selId = _useState14[0],
+      setSelId = _useState14[1];
+    var _useState15 = useState(false),
       _useState16 = _slicedToArray(_useState15, 2),
-      toast = _useState16[0],
-      setToast = _useState16[1];
+      edit = _useState16[0],
+      setEdit = _useState16[1];
     var _useState17 = useState(null),
       _useState18 = _slicedToArray(_useState17, 2),
-      flashId = _useState18[0],
-      setFlashId = _useState18[1];
-    var _useState19 = useState(false),
+      editSlot = _useState18[0],
+      setEditSlot = _useState18[1];
+    var _useState19 = useState(null),
       _useState20 = _slicedToArray(_useState19, 2),
-      scanFlash = _useState20[0],
-      setScanFlash = _useState20[1];
+      prodEdit = _useState20[0],
+      setProdEdit = _useState20[1]; // { plu } | { plu: null } = nowy
+    var _useState21 = useState(null),
+      _useState22 = _slicedToArray(_useState21, 2),
+      sheet = _useState22[0],
+      setSheet = _useState22[1];
+    var _useState23 = useState(null),
+      _useState24 = _slicedToArray(_useState23, 2),
+      toast = _useState24[0],
+      setToast = _useState24[1];
+    var _useState25 = useState(null),
+      _useState26 = _slicedToArray(_useState25, 2),
+      flashId = _useState26[0],
+      setFlashId = _useState26[1];
+    var _useState27 = useState(false),
+      _useState28 = _slicedToArray(_useState27, 2),
+      scanFlash = _useState28[0],
+      setScanFlash = _useState28[1];
     var seq = useRef(0);
     var timers = useRef([]);
     var toastT = useRef(null);
@@ -263,10 +449,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var later = function later(fn, ms) {
       return timers.current.push(setTimeout(fn, ms));
     };
-    var _ref3 = tweaks.grid === '5x6' ? [5, 6] : [6, 5],
-      _ref4 = _slicedToArray(_ref3, 2),
-      gc = _ref4[0],
-      gr = _ref4[1];
+    var _ref4 = tweaks.grid === '5x6' ? [5, 6] : [6, 5],
+      _ref5 = _slicedToArray(_ref4, 2),
+      gc = _ref5[0],
+      gr = _ref5[1];
     var pageC = Math.min(page, pages.length - 1);
     var fpageC = Math.min(fpage, fpages.length - 1);
 
@@ -277,7 +463,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var subtotal = NPF.round2(lines.reduce(function (s, l) {
       return s + lineTotal(l);
     }, 0));
-    var rdAmt = rcptDisc && subtotal > 0 ? Math.min(subtotal, rcptDisc.type === 'amt' ? rcptDisc.v : NPF.round2(subtotal * rcptDisc.v / 100)) : 0;
+    var rdBase = rcptDisc && subtotal > 0 ? rcptDisc.type === 'amt' ? rcptDisc.v : NPF.round2(subtotal * rcptDisc.v / 100) : 0;
+    var rdAmt = rcptDisc && rcptDisc.up ? -rdBase : Math.min(subtotal, rdBase); // ujemne = narzut
     var total = NPF.round2(subtotal - rdAmt);
     var counts = useMemo(function () {
       var m = {};
@@ -285,7 +472,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         if (l.qty > 0) m[l.pid] = (m[l.pid] || 0) + l.qty;
       });
       Object.keys(m).forEach(function (k) {
-        var p = PBY[k];
+        var p = NP_DB.get(k);
         m[k] = p && p.unit === 'kg' ? NPF.qty(m[k], 'kg').replace(/0+$/, '').replace(/,$/, '') + ' kg' : String(m[k]);
       });
       return m;
@@ -391,7 +578,46 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var drawer = stats.drawer;
 
     // ── sprzedaż ──
-    var doSell = function doSell(p, src, code) {
+    var r3 = function r3(x) {
+      return Math.round(x * 1000) / 1000;
+    };
+    var ageRef = useRef(false); // wiek klienta potwierdzony na bieżącym paragonie
+    var _doSell = function doSell(p, src, code) {
+      if (p.active === false) {
+        err("Towar \u201E".concat(p.name, "\u201D jest usuni\u0119ty"));
+        return;
+      }
+      if (p.excise && bufRef.current.mode !== 'return') {
+        if (!linesRef.current.length) ageRef.current = false;
+        if (!ageRef.current) {
+          dialog({
+            tone: 'warning',
+            title: 'Sprawdź wiek klienta',
+            desc: "\u201E".concat(p.name, "\u201D to towar akcyzowy. Upewnij si\u0119, \u017Ce klient ma uko\u0144czone 18 lat. Potwierdzenie obowi\u0105zuje do ko\u0144ca tego paragonu."),
+            actions: [{
+              label: 'Nie sprzedawaj',
+              cancel: true,
+              onClick: function onClick() {
+                close();
+                clearBuf();
+                setLastEvent({
+                  kind: 'storno',
+                  text: "Nie sprzedano \xB7 ".concat(p.name, " (wiek klienta)")
+                });
+              }
+            }, {
+              label: 'Klient ma 18 lat',
+              primary: true,
+              onClick: function onClick() {
+                ageRef.current = true;
+                close();
+                _doSell(p, src, code);
+              }
+            }]
+          });
+          return;
+        }
+      }
       var _bufRef$current = bufRef.current,
         qty = _bufRef$current.qty,
         priceOv = _bufRef$current.priceOv,
@@ -399,48 +625,77 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       var L = linesRef.current;
       var q = qty ? qty.v : null;
       var fromScale = false;
-      if (q == null && p.unit === 'kg') {
+      if (q == null && p.weighed) {
         q = readScale();
         fromScale = true;
       }
       if (q == null) q = 1;
-      if (p.unit === 'szt' && !Number.isInteger(q)) {
-        err("\u201E".concat(p.name, "\u201D sprzedawany jest na sztuki"));
+      var prec = NP_DB.precOf(p);
+      if (Math.abs(q / prec - Math.round(q / prec)) > 1e-6) {
+        err(prec >= 1 ? "\u201E".concat(p.name, "\u201D sprzedawany jest tylko w ca\u0142ych ilo\u015Bciach") : "\u201E".concat(p.name, "\u201D: dok\u0142adno\u015B\u0107 sprzeda\u017Cy ").concat(String(prec).replace('.', ','), " ").concat(p.unit));
+        return;
+      }
+      if (priceOv != null) {
+        if (p.priceMode === 'Zamknięta') {
+          err("Cena towaru \u201E".concat(p.name, "\u201D jest zamkni\u0119ta"));
+          return;
+        }
+        if (p.priceMode === 'Tylko w górę' && priceOv < p.price) {
+          err("Cen\u0119 \u201E".concat(p.name, "\u201D mo\u017Cna tylko podnie\u015B\u0107"));
+          return;
+        }
+        if (p.priceMode === 'Tylko w dół' && priceOv > p.price) {
+          err("Cen\u0119 \u201E".concat(p.name, "\u201D mo\u017Cna tylko obni\u017Cy\u0107"));
+          return;
+        }
+      }
+      var price = priceOv != null ? priceOv : p.price;
+      if (!(price > 0)) {
+        err("Wpisz cen\u0119 towaru \u201E".concat(p.name, "\u201D i naci\u015Bnij CENA"));
         return;
       }
       var sign = mode === 'return' ? -1 : 1;
-      var price = priceOv != null ? priceOv : p.price;
-      var i = p.unit === 'szt' ? L.findIndex(function (l) {
-        return l.pid === p.plu && l.price === price && !l.adj && Math.sign(l.qty) === sign;
-      }) : -1;
-      var id;
-      if (i >= 0) {
-        id = L[i].id;
-        commit(L.map(function (l, j) {
+      var add = function add(arr, prod, qq, pr, ov) {
+        var whole = NP_DB.precOf(prod) >= 1 && !prod.weighed;
+        var i = whole ? arr.findIndex(function (l) {
+          return l.pid === prod.plu && l.price === pr && !l.adj && Math.sign(l.qty) === sign;
+        }) : -1;
+        if (i >= 0) return [arr.map(function (l, j) {
           return j === i ? _objectSpread(_objectSpread({}, l), {}, {
-            qty: l.qty + sign * q
+            qty: r3(l.qty + sign * qq)
           }) : l;
-        }));
-      } else {
-        id = NPF.uid();
-        commit([].concat(_toConsumableArray(L), [{
-          id: id,
-          pid: p.plu,
-          name: p.name,
-          unit: p.unit,
-          qty: sign * q,
-          price: price,
+        }), arr[i].id];
+        var nid = NPF.uid();
+        return [[].concat(_toConsumableArray(arr), [{
+          id: nid,
+          pid: prod.plu,
+          name: prod.name,
+          unit: prod.unit,
+          qty: r3(sign * qq),
+          price: pr,
           adj: 0,
-          ov: priceOv != null
-        }]));
+          ov: ov
+        }]), nid];
+      };
+      var id;
+      var _add = add(L, p, q, price, priceOv != null);
+      var _add2 = _slicedToArray(_add, 2);
+      L = _add2[0];
+      id = _add2[1];
+      var pk = p.pack && NP_DB.get(p.pack);
+      if (pk) {
+        var _add3 = add(L, pk, Math.max(1, Math.round((prec >= 1 ? q : 1) * (p.packN || 1))), pk.price, false);
+        var _add4 = _slicedToArray(_add3, 1);
+        L = _add4[0];
       }
+      commit(L);
       flash(id);
       setSelId(null);
       var qTxt = NPF.qty(q, p.unit) + (p.unit === 'kg' ? ' kg' : '');
       setLastEvent({
         kind: fromScale ? 'waga' : src,
         code: code || null,
-        text: "".concat(sign < 0 ? 'Zwrot · ' : '').concat(p.name, " \xB7 ").concat(qTxt, " \xD7 ").concat(M(price)).concat(fromScale ? ' (waga)' : '')
+        text: "".concat(sign < 0 ? 'Zwrot · ' : '').concat(p.name, " \xB7 ").concat(qTxt, " \xD7 ").concat(M(price)).concat(fromScale ? ' (waga)' : '').concat(pk ? ' + kaucja' : '')
       });
       clearBuf();
     };
@@ -454,7 +709,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           label: 'Sprzedaj',
           onClick: function onClick() {
             close();
-            doSell(p, 'kod', p.ean);
+            _doSell(p, 'kod', p.ean);
           }
         }, {
           label: 'OK',
@@ -474,11 +729,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         showPrice(p);
         return;
       }
-      doSell(p, src, code);
+      _doSell(p, src, code);
     };
     var findCode = function findCode(c) {
-      return PRODUCTS.find(function (x) {
-        return x.plu === c || x.ean === c;
+      return NP_DB.all().find(function (x) {
+        return x.plu === c || x.ean && x.ean === c;
       });
     };
     var sellByCode = function sellByCode(c) {
@@ -499,8 +754,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       sell(p, src, c);
     };
     var scan = function scan() {
-      var pool = PRODUCTS.filter(function (x) {
-        return x.group !== 'kaucje';
+      var pool = NP_DB.all().filter(function (x) {
+        return x.group !== 'kaucje' && x.active !== false && x.price > 0;
       });
       var p = pool[Math.floor(Math.random() * pool.length)];
       setScanFlash(true);
@@ -567,7 +822,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var onQty = function onQty(id, d) {
       return commit(linesRef.current.map(function (x) {
         return x.id === id ? _objectSpread(_objectSpread({}, x), {}, {
-          qty: x.qty + d
+          qty: Math.round((x.qty + d) * 1000) / 1000
         }) : x;
       }).filter(function (x) {
         return x.qty !== 0;
@@ -694,6 +949,16 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       });
     };
     var payDone = function payDone(r) {
+      linesRef.current.forEach(function (l) {
+        var pr = NP_DB.get(l.pid);
+        if (!pr) return;
+        var val = NPF.round2(l.qty * l.price * (1 - (l.adj || 0) / 100));
+        NP_DB.save(_objectSpread(_objectSpread({}, pr), {}, {
+          soldQty: r3((pr.soldQty || 0) + l.qty),
+          soldVal: NPF.round2((pr.soldVal || 0) + val),
+          stock: r3((+pr.stock || 0) - l.qty)
+        }));
+      });
       var no = receiptNo,
         t = total;
       var by = {
@@ -761,6 +1026,17 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
             });
             return;
           }
+        case 'rabatDok':
+          if (!lines.length) {
+            err('Brak pozycji na paragonie');
+            return;
+          }
+          setSheet({
+            type: 'docadj',
+            props: {},
+            k: ++seq.current
+          });
+          return;
         case 'rabat10zl':
           if (!lines.length) {
             err('Brak pozycji na paragonie');
@@ -1369,6 +1645,15 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         priceOv = _bufRef$current2.priceOv,
         fMode = _bufRef$current2.fMode,
         mode = _bufRef$current2.mode;
+      if (fMode && /^[1-9]$/.test(k)) {
+        var sl = fKey[F_IDX[k]];
+        setBuf({
+          fMode: false
+        });
+        if (sl) onTile(sl);else err("Klawisz F".concat(k, " nie ma przypisanej funkcji"));
+        return true;
+      }
+      if (fMode && (k === '0' || k === ',')) return true;
       if (/^[0-9]$/.test(k) || k === ',') {
         setBuf(function (b) {
           return {
@@ -1427,13 +1712,20 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           openPay('cash');
           break;
         case 'F':
-          setFOpen('run');
+          setBuf({
+            fMode: !fMode
+          });
           break;
         case 'FEED':
           feed();
           break;
         case 'MENU':
-          goTab('menu');
+          if (fMode) {
+            setBuf({
+              fMode: false
+            });
+            setFOpen('edit');
+          } else goTab('menu');
           break;
         case 'SCAN':
           scan();
@@ -1445,7 +1737,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }, 0);
     var onTile = function onTile(slot) {
       if (slot.t === 'p') {
-        var p = PBY[slot.id];
+        var p = NP_DB.get(slot.id);
         if (p) sell(p, 'tile');
         return;
       }
@@ -1502,6 +1794,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }, props));
       if (type === 'pay') return /*#__PURE__*/React.createElement(PaySheet, {
         key: k,
+        cashier: cashier,
+        subtotal: subtotal,
+        rdAmt: rdAmt,
+        invoice: invoice,
+        nip: nip,
         total: total,
         count: lines.length,
         receiptNo: receiptNo,
@@ -1511,6 +1808,30 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         onCancel: close,
         onDone: payDone
       });
+      if (type === 'docadj') {
+        return /*#__PURE__*/React.createElement(DocAdjSheet, {
+          key: k,
+          subtotal: subtotal,
+          current: rcptDisc,
+          onCancel: close,
+          onRemove: function onRemove() {
+            close();
+            setRcptDisc(null);
+            setLastEvent({
+              kind: 'storno',
+              text: (rcptDisc && rcptDisc.up ? 'Narzut' : 'Rabat') + ' na paragon usunięty'
+            });
+          },
+          onApply: function onApply(d) {
+            close();
+            setRcptDisc(d);
+            setLastEvent({
+              kind: 'info',
+              text: "".concat(d.up ? 'Narzut' : 'Rabat', " ").concat(d.type === 'pct' ? String(d.v).replace('.', ',') + '%' : M(d.v) + ' zł', " na paragon")
+            });
+          }
+        });
+      }
       if (type === 'rabat') {
         var line = lines.find(function (x) {
           return x.id === props.lineId;
@@ -1580,6 +1901,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var clearRcptDiscS = useCallback(function () {
       return setRcptDisc(null);
     }, []);
+    var openDocAdjS = useEvent(function () {
+      return _runFunc('rabatDok');
+    });
     var toggleSel = useCallback(function (id) {
       return setSelId(function (x) {
         return x === id ? null : id;
@@ -1612,15 +1936,44 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       uiClose = useEvent(close),
       uiSay = useEvent(say),
       uiProgress = useEvent(progressThen);
+    var editProduct = useCallback(function (plu) {
+      return setProdEdit({
+        plu: plu || null
+      });
+    }, []);
+    var getFavs = useEvent(function () {
+      return favs;
+    });
     var menuUi = useMemo(function () {
       return {
         amount: uiAmount,
         dialog: uiDialog,
         close: uiClose,
         say: uiSay,
-        progressThen: uiProgress
+        progressThen: uiProgress,
+        editProduct: editProduct,
+        getFavs: getFavs
       };
     }, []);
+    var saveProduct = function saveProduct(p, fav) {
+      NP_DB.save(p);
+      setFavs(function (fs) {
+        return fav ? fs.includes(p.plu) ? fs : [].concat(_toConsumableArray(fs), [p.plu]) : fs.filter(function (x) {
+          return x !== p.plu;
+        });
+      });
+      setProdEdit(null);
+      say(p.active === false ? "Towar \u201E".concat(p.name, "\u201D oznaczony jako usuni\u0119ty") : "Towar \u201E".concat(p.name, "\u201D zapisany"), 'ok', 'check');
+    };
+    var prodSheet = prodEdit && /*#__PURE__*/React.createElement(ProductEditor, {
+      key: prodEdit.plu || 'new',
+      product: prodEdit.plu ? NP_DB.get(prodEdit.plu) : null,
+      isFav: !!prodEdit.plu && favs.includes(prodEdit.plu),
+      onCancel: function onCancel() {
+        return setProdEdit(null);
+      },
+      onSave: saveProduct
+    });
     var hasLines = lines.length > 0;
     var tabDisabled = useMemo(function () {
       return {
@@ -1652,10 +2005,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         name: "menu"
       })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Menu kasy"), /*#__PURE__*/React.createElement("small", null, "Bez logowania kasjera"))), /*#__PURE__*/React.createElement("div", {
         className: "np-lines-card np-menuinfo"
-      }, [['Sklep', SHOP.name], ['Adres', SHOP.addr], ['Kasa', SHOP.kasa + ' · ' + SHOP.nip], ['Data', NPF.dateFull(now)], ['NoviCloud', 'Połączono'], ['Drukarka', 'Gotowa'], ['Wersja', '2.4.0 · prototyp']].map(function (_ref5) {
-        var _ref6 = _slicedToArray(_ref5, 2),
-          k = _ref6[0],
-          v = _ref6[1];
+      }, [['Sklep', SHOP.name], ['Adres', SHOP.addr], ['Kasa', SHOP.kasa + ' · ' + SHOP.nip], ['Data', NPF.dateFull(now)], ['NoviCloud', 'Połączono'], ['Drukarka', 'Gotowa'], ['Wersja', '2.4.0 · prototyp']].map(function (_ref6) {
+        var _ref7 = _slicedToArray(_ref6, 2),
+          k = _ref7[0],
+          v = _ref7[1];
         return /*#__PURE__*/React.createElement("div", {
           key: k,
           className: "np-menuinfo-row"
@@ -1665,7 +2018,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         onClick: onLogout
       }, /*#__PURE__*/React.createElement(Icon, {
         name: "log-out"
-      }), /*#__PURE__*/React.createElement("span", null, "Wyj\u015Bcie"))), sheet && renderSheet(), /*#__PURE__*/React.createElement(Toast, {
+      }), /*#__PURE__*/React.createElement("span", null, "Wyj\u015Bcie"))), sheet && renderSheet(), prodSheet, /*#__PURE__*/React.createElement(Toast, {
         toast: toast
       }));
     }
@@ -1677,6 +2030,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-work",
       key: tab
     }, tab === 'klawiatura' && /*#__PURE__*/React.createElement(KeyboardView, {
+      fSlots: buf.fMode ? fKey : null,
       hints: tweaks.hints,
       onLongEsc: powerDialogS,
       row: kbRow,
@@ -1698,7 +2052,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       onSell: sellListS,
       favs: favs,
       setFavs: setFavs,
-      counts: counts
+      counts: counts,
+      ui: menuUi,
+      onEdit: editProduct
     }), tab === 'funkcjeF' && /*#__PURE__*/React.createElement(PanelsView, {
       pages: fpages,
       setPages: setFPages,
@@ -1737,6 +2093,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       setTab: goTabS,
       disabled: tabDisabled
     })), /*#__PURE__*/React.createElement(ReceiptPane, {
+      qtyStyle: tweaks.qtyStyle || 'pill',
       cashier: cashier,
       receiptNo: receiptNo,
       lines: lines,
@@ -1751,6 +2108,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       rdAmt: rdAmt,
       rcptDisc: rcptDisc,
       onClearRcptDisc: clearRcptDiscS,
+      onDocAdj: openDocAdjS,
       nip: nip,
       invoice: invoice,
       scanFlash: scanFlash,
@@ -1765,7 +2123,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         onTile: onTileS,
         onEdit: editQPay
       })
-    }), sheet && renderSheet(), editSlot && /*#__PURE__*/React.createElement(TileEditor, {
+    }), sheet && renderSheet(), prodSheet, editSlot && /*#__PURE__*/React.createElement(TileEditor, {
       key: JSON.stringify(editSlot),
       slot: slotOf(editSlot),
       whereLabel: whereLabel(editSlot),

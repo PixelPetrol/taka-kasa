@@ -1,5 +1,11 @@
 "use strict";
 
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
+function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
+function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
+function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
+function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
+function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
 function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
@@ -80,11 +86,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   function keyFace(k) {
     switch (k) {
       case 'ESC':
-        return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Icon, {
-          name: "power"
-        }), /*#__PURE__*/React.createElement("span", {
-          className: "np-key-cap"
-        }, "ESC"));
+        return /*#__PURE__*/React.createElement("span", {
+          className: "np-key-big"
+        }, "C");
       case 'FEED':
         return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Icon, {
           name: "roll"
@@ -121,15 +125,46 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         return k;
     }
   }
+  var F_IDX = {
+    7: 0,
+    8: 1,
+    9: 2,
+    4: 3,
+    5: 4,
+    6: 5,
+    1: 6,
+    2: 7,
+    3: 8
+  };
   var Key = React.memo(function Key(_ref) {
     var d = _ref.d,
       press = _ref.press,
       hints = _ref.hints,
       onPD = _ref.onPD,
       onEnd = _ref.onEnd,
-      onCl = _ref.onCl;
+      onCl = _ref.onCl,
+      fs = _ref.fs,
+      fOn = _ref.fOn;
+    if (fs !== undefined) {
+      var info = fs ? tileInfo(fs) : null;
+      return /*#__PURE__*/React.createElement("button", {
+        className: 'np-key k-fx' + (info ? ' c-' + info.color : ' empty') + (press ? ' press' : ''),
+        onPointerDown: function onPointerDown(e) {
+          return onPD(e, d.k);
+        },
+        onClick: function onClick() {
+          return onCl(d.k);
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "np-key-fn"
+      }, "F", d.k), info && info.icon && /*#__PURE__*/React.createElement(Icon, {
+        name: info.icon
+      }), /*#__PURE__*/React.createElement("span", {
+        className: "np-key-fl"
+      }, info ? info.label.replace(/\n/g, ' ') : 'brak funkcji'));
+    }
     return /*#__PURE__*/React.createElement("button", {
-      className: 'np-key ' + (d.cls || 'k-digit') + (press ? ' press' : ''),
+      className: 'np-key ' + (d.cls || 'k-digit') + (press ? ' press' : '') + (fOn === true ? ' f-on' : fOn === 'edit' ? ' f-edit' : '') + (fOn === false ? ' f-dim' : ''),
       onPointerDown: function onPointerDown(e) {
         return onPD(e, d.k);
       },
@@ -139,7 +174,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       onClick: function onClick() {
         return onCl(d.k);
       }
-    }, keyFace(d.k), hints && d.hint && /*#__PURE__*/React.createElement("span", {
+    }, fOn === 'edit' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Icon, {
+      name: "pencil"
+    }), /*#__PURE__*/React.createElement("span", {
+      className: "np-key-cap"
+    }, "Edytuj")) : keyFace(d.k), hints && d.hint && /*#__PURE__*/React.createElement("span", {
       className: "np-key-hint"
     }, d.hint));
   });
@@ -149,7 +188,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       row = _ref2.row,
       n = _ref2.n,
       onTile = _ref2.onTile,
-      onEditRow = _ref2.onEditRow;
+      onEditRow = _ref2.onEditRow,
+      fSlots = _ref2.fSlots;
     var _useState = useState(null),
       _useState2 = _slicedToArray(_useState, 2),
       pressed = _useState2[0],
@@ -169,15 +209,6 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     // Klawisze reagują od razu na dotknięcie (pointerdown); ESC — na puszczenie (przytrzymanie = wyłączanie)
     var onPD = React.useCallback(function (e, k) {
       if (e.button && e.button > 0) return;
-      if (k === 'ESC') {
-        T.current["long"] = false;
-        clearTimeout(T.current.l);
-        T.current.l = setTimeout(function () {
-          T.current["long"] = true;
-          longRef.current();
-        }, 900);
-        return;
-      }
       T.current.pd = k;
       NPKeys.press(k, 'screen');
     }, []);
@@ -185,14 +216,6 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       return clearTimeout(T.current.l);
     }, []);
     var onCl = React.useCallback(function (k) {
-      if (k === 'ESC') {
-        if (T.current["long"]) {
-          T.current["long"] = false;
-          return;
-        }
-        NPKeys.press('ESC', 'screen');
-        return;
-      }
       if (T.current.pd === k) {
         T.current.pd = null;
         return;
@@ -207,8 +230,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       onTile: onTile,
       onEdit: onEditRow
     }), /*#__PURE__*/React.createElement("div", {
-      className: "np-kb"
+      className: 'np-kb' + (fSlots ? ' fmode' : '')
     }, KB.map(function (d) {
+      var fi = fSlots ? F_IDX[d.k] : undefined;
       return /*#__PURE__*/React.createElement(Key, {
         key: d.k,
         d: d,
@@ -216,43 +240,62 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         hints: hints,
         onPD: onPD,
         onEnd: onEnd,
-        onCl: onCl
+        onCl: onCl,
+        fs: fi !== undefined ? fSlots[fi] || null : undefined,
+        fOn: fSlots ? d.k === 'F' ? true : d.k === 'MENU' ? 'edit' : d.k === 'ESC' ? undefined : false : undefined
       });
     })));
   }
 
   // ── Towary: grupy asortymentowe, ulubione, wyszukiwarka z klawiaturą ekranową ──
+  var NO_COUNTS = {};
   function GoodsView(_ref3) {
     var onSell = _ref3.onSell,
       favs = _ref3.favs,
       setFavs = _ref3.setFavs,
-      counts = _ref3.counts;
+      _ref3$counts = _ref3.counts,
+      counts = _ref3$counts === void 0 ? NO_COUNTS : _ref3$counts,
+      ui = _ref3.ui,
+      onEdit = _ref3.onEdit,
+      manage = _ref3.manage;
     var _NP_DATA = NP_DATA,
-      PRODUCTS = _NP_DATA.PRODUCTS,
       GROUPS = _NP_DATA.GROUPS,
       VAT = _NP_DATA.VAT;
-    var _useStored = useStored('goodsGroup', 'fav'),
+    useProductsVer();
+    var PRODUCTS = NP_DB.all();
+    var favList = favs || [];
+    var _useStored = useStored(manage ? 'goodsGroupM' : 'goodsGroup', manage ? 'all' : 'fav'),
       _useStored2 = _slicedToArray(_useStored, 2),
       grp = _useStored2[0],
       setGrp = _useStored2[1];
-    var _useState3 = useState(''),
+    var _useStored3 = useStored('goodsFilter', GF0),
+      _useStored4 = _slicedToArray(_useStored3, 2),
+      flt = _useStored4[0],
+      setFlt = _useStored4[1];
+    var _useState3 = useState(false),
       _useState4 = _slicedToArray(_useState3, 2),
-      q = _useState4[0],
-      setQ = _useState4[1];
-    var _useState5 = useState(false),
+      fOpen = _useState4[0],
+      setFOpen = _useState4[1];
+    var _useState5 = useState(''),
       _useState6 = _slicedToArray(_useState5, 2),
-      osk = _useState6[0],
-      setOsk = _useState6[1];
+      q = _useState6[0],
+      setQ = _useState6[1];
+    var _useState7 = useState(false),
+      _useState8 = _slicedToArray(_useState7, 2),
+      osk = _useState8[0],
+      setOsk = _useState8[1];
     var inRef = useRef(null);
     var nq = NPF.norm(q.trim());
     var inGroup = grp === 'fav' ? PRODUCTS.filter(function (p) {
-      return favs.includes(p.plu);
+      return favList.includes(p.plu);
     }) : grp === 'all' ? PRODUCTS : PRODUCTS.filter(function (p) {
       return p.group === grp;
     });
-    var list = nq ? PRODUCTS.filter(function (p) {
-      return NPF.norm(p.name).includes(nq) || p.plu === nq || p.ean.startsWith(nq);
+    var base = nq ? PRODUCTS.filter(function (p) {
+      return NPF.norm(p.name).includes(nq) || p.plu === nq || (p.ean || '').startsWith(nq);
     }) : inGroup;
+    var list = applyGoodsFilter(base, flt);
+    var nFlt = goodsFilterCount(flt);
     var hl = function hl(name) {
       if (!nq) return name;
       var i = NPF.norm(name).indexOf(nq);
@@ -260,7 +303,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       return /*#__PURE__*/React.createElement(React.Fragment, null, name.slice(0, i), /*#__PURE__*/React.createElement("mark", null, name.slice(i, i + nq.length)), name.slice(i + nq.length));
     };
     var toggleFav = function toggleFav(plu) {
-      return setFavs(function (f) {
+      return setFavs && setFavs(function (f) {
         return f.includes(plu) ? f.filter(function (x) {
           return x !== plu;
         }) : [].concat(_toConsumableArray(f), [plu]);
@@ -277,29 +320,47 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       setOsk(false);
       if (inRef.current) inRef.current.blur();
     };
-    var side = [{
+    var cnt = function cnt(arr) {
+      return applyGoodsFilter(arr, flt).length;
+    };
+    var side = [].concat(_toConsumableArray(manage ? [] : [{
       id: 'fav',
       label: 'Ulubione',
       icon: 'star',
-      n: favs.length
-    }, {
+      n: cnt(PRODUCTS.filter(function (p) {
+        return favList.includes(p.plu);
+      }))
+    }]), [{
       id: 'all',
       label: 'Wszystkie',
       icon: 'list',
-      n: PRODUCTS.length
-    }].concat(_toConsumableArray(GROUPS.map(function (g) {
+      n: cnt(PRODUCTS)
+    }], _toConsumableArray(GROUPS.map(function (g) {
       return {
         id: g.id,
         label: g.label,
         icon: g.icon,
-        n: PRODUCTS.filter(function (p) {
+        n: cnt(PRODUCTS.filter(function (p) {
           return p.group === g.id;
-        }).length
+        }))
       };
     })));
     var title = nq ? "Wyniki dla \u201E".concat(q.trim(), "\u201D") : (side.find(function (s) {
       return s.id === grp;
     }) || side[0]).label;
+    var tap = function tap(p) {
+      if (manage || p.active === false) onEdit && onEdit(p.plu);else onSell(p);
+    };
+    var print = function print() {
+      if (!list.length) {
+        ui && ui.say('Lista towarów jest pusta', 'err', 'printer');
+        return;
+      }
+      ui && ui.progressThen('Drukowanie listy towarów…', "".concat(title, " \xB7 ").concat(list.length, " poz."), Math.min(3000, 1200 + list.length * 20), {
+        title: 'Lista towarów wydrukowana',
+        rows: [['Lista', title], ['Pozycje', String(list.length)], ['Filtry', filterSummary(flt)]]
+      });
+    };
     return /*#__PURE__*/React.createElement("div", {
       className: "np-goods"
     }, /*#__PURE__*/React.createElement("div", {
@@ -324,6 +385,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }), /*#__PURE__*/React.createElement("input", {
       ref: inRef,
       value: q,
+      inputMode: "none",
       placeholder: "Szukaj po nazwie, PLU lub kodzie EAN",
       onFocus: function onFocus() {
         return setOsk(true);
@@ -334,7 +396,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       onKeyDown: function onKeyDown(e) {
         if (e.key === 'Escape') hideOsk();
         if (e.key === 'Enter' && list.length === 1) {
-          onSell(list[0]);
+          tap(list[0]);
           setQ('');
         }
       }
@@ -346,29 +408,58 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       "aria-label": "Wyczy\u015B\u0107"
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "x"
-    }))), /*#__PURE__*/React.createElement(ScrollArea, {
-      key: grp + '|' + nq,
+    }))), /*#__PURE__*/React.createElement("div", {
+      className: "np-gbar"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "np-gbar-title"
+    }, /*#__PURE__*/React.createElement("b", null, title), /*#__PURE__*/React.createElement("small", null, list.length)), /*#__PURE__*/React.createElement("button", {
+      className: 'np-pill-btn' + (nFlt ? ' ink' : ''),
+      onClick: function onClick() {
+        hideOsk();
+        setFOpen(true);
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "sliders-horizontal"
+    }), "Filtry", nFlt ? /*#__PURE__*/React.createElement("i", {
+      className: "np-gbar-n"
+    }, nFlt) : null), /*#__PURE__*/React.createElement("button", {
+      className: "np-pill-btn",
+      onClick: print
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "printer"
+    }), "Drukuj"), /*#__PURE__*/React.createElement("button", {
+      className: "np-pill-btn green",
+      onClick: function onClick() {
+        return onEdit && onEdit(null);
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "plus"
+    }), "Nowy towar")), nFlt > 0 && /*#__PURE__*/React.createElement("div", {
+      className: "np-gactive"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "sliders-horizontal"
+    }), /*#__PURE__*/React.createElement("span", null, filterSummary(flt)), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setFlt(GF0);
+      }
+    }, "Wyczy\u015B\u0107")), /*#__PURE__*/React.createElement(ScrollArea, {
+      key: grp + '|' + nq + '|' + JSON.stringify(flt),
       className: "np-glist",
       more: false
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "np-ghead"
-    }, /*#__PURE__*/React.createElement("span", {
-      className: "np-ghead-title"
-    }, title, /*#__PURE__*/React.createElement("small", null, list.length)), /*#__PURE__*/React.createElement("span", null, "VAT"), /*#__PURE__*/React.createElement("span", {
-      className: "r"
-    }, "Cena"), /*#__PURE__*/React.createElement("span", null)), list.map(function (p) {
-      var fav = favs.includes(p.plu);
+    }, list.map(function (p) {
+      var fav = favList.includes(p.plu);
+      var off = p.active === false;
       return /*#__PURE__*/React.createElement("div", {
         key: p.plu,
-        className: "np-grow",
+        className: 'np-grow' + (manage ? ' manage' : '') + (off ? ' off' : ''),
         role: "button",
         onClick: function onClick() {
-          return onSell(p);
+          return tap(p);
         }
       }, /*#__PURE__*/React.createElement("span", {
-        className: "np-grow-ico"
+        className: 'np-grow-ico' + (NP_DB.pictOf(p) ? ' own' : '')
       }, /*#__PURE__*/React.createElement(Icon, {
-        name: p.icon
+        name: NP_DB.listIcon(p)
       })), /*#__PURE__*/React.createElement("span", {
         className: "np-grow-main"
       }, /*#__PURE__*/React.createElement("span", {
@@ -379,11 +470,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         className: "np-grow-count"
       }, counts[p.plu]) : null), /*#__PURE__*/React.createElement("span", {
         className: "np-grow-code"
-      }, "PLU ", p.plu, " \xB7 ", p.ean)), /*#__PURE__*/React.createElement("span", {
+      }, "PLU ", p.plu, p.ean ? ' · ' + p.ean : '', p.type && p.type !== 'Towar' ? ' · ' + p.type.toLowerCase() : '', p.excise ? ' · akcyza' : '', off ? ' · usunięty' : '')), /*#__PURE__*/React.createElement("span", {
         className: "np-grow-vat"
       }, VAT[p.vat]), /*#__PURE__*/React.createElement("span", {
         className: "np-grow-price"
-      }, NPF.money(p.price), /*#__PURE__*/React.createElement("small", null, "z\u0142 / ", p.unit)), /*#__PURE__*/React.createElement("button", {
+      }, NPF.money(p.price), /*#__PURE__*/React.createElement("small", null, "z\u0142 / ", p.unit)), !manage && /*#__PURE__*/React.createElement("button", {
         className: 'np-star' + (fav ? ' on' : ''),
         onClick: function onClick(e) {
           e.stopPropagation();
@@ -392,13 +483,36 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         "aria-label": "Ulubione"
       }, /*#__PURE__*/React.createElement(Icon, {
         name: "star"
+      })), /*#__PURE__*/React.createElement("button", {
+        className: "np-gedit",
+        onClick: function onClick(e) {
+          e.stopPropagation();
+          onEdit && onEdit(p.plu);
+        },
+        "aria-label": "Edytuj towar"
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: "pencil"
       })));
     }), list.length === 0 && /*#__PURE__*/React.createElement("div", {
       className: "np-glist-empty"
-    }, nq ? 'Brak towarów pasujących do wyszukiwania' : 'Brak towarów w tej grupie. Dodaj je gwiazdką z listy „Wszystkie”.')), osk && /*#__PURE__*/React.createElement(OSK, {
+    }, nq ? 'Brak towarów pasujących do wyszukiwania' : nFlt ? 'Brak towarów spełniających filtry' : grp === 'fav' ? 'Brak towarów w ulubionych. Dodaj je gwiazdką z listy „Wszystkie”.' : 'Brak towarów w tej grupie')), osk && /*#__PURE__*/React.createElement(OSK, {
       onKey: oskKey,
       onHide: hideOsk
-    })));
+    })), fOpen && /*#__PURE__*/React.createElement(GoodsFilterSheet, {
+      value: flt,
+      countFor: function countFor(f) {
+        return applyGoodsFilter(base, f).length;
+      },
+      onCancel: function onCancel() {
+        return setFOpen(false);
+      },
+      onApply: function onApply(f) {
+        setFlt(f.types && f.types.length === NP_DATA.PRODUCT_TYPES.length ? _objectSpread(_objectSpread({}, f), {}, {
+          types: null
+        }) : f);
+        setFOpen(false);
+      }
+    }));
   }
 
   // ── Klawisz F: 3 × 3 programowalnych pól (funkcje lub towary) ──
@@ -411,10 +525,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       onEdit = _ref4.onEdit,
       onClose = _ref4.onClose,
       counts = _ref4.counts;
-    var _useState7 = useState(!!initialEdit),
-      _useState8 = _slicedToArray(_useState7, 2),
-      edit = _useState8[0],
-      setEdit = _useState8[1];
+    var _useState9 = useState(!!initialEdit),
+      _useState0 = _slicedToArray(_useState9, 2),
+      edit = _useState0[0],
+      setEdit = _useState0[1];
     useKeys(function (k) {
       var i = FKEY_DIGITS.indexOf(k);
       if (i >= 0) {

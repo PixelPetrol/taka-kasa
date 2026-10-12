@@ -36,12 +36,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     if (!slot) return null;
     var ico = slot.icon === 'none' ? null : slot.icon;
     if (slot.t === 'p') {
-      var p = PBY[slot.id];
+      var p = NP_DB.get(slot.id);
       return p ? {
         kind: 'p',
         p: p,
         label: p.name,
-        icon: ico || null,
+        icon: slot.icon === 'none' ? null : ico || NP_DB.pictOf(p),
         color: slot.color || 'gray'
       } : null;
     }
@@ -56,7 +56,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   }
   var Tile = React.memo(function Tile(_ref) {
     var slot = _ref.slot,
-      showF = _ref.showF;
+      showF = _ref.showF,
+      pv = _ref.pv;
     var info = tileInfo(slot);
     if (!info) return /*#__PURE__*/React.createElement("div", {
       className: "np-tile t-empty"
@@ -74,7 +75,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-tile-f"
     }, "F", info.f.f) : null), /*#__PURE__*/React.createElement("div", {
       className: "np-tile-label"
-    }, info.label), info.kind === 'p' && /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("span", null, info.label)), info.kind === 'p' && /*#__PURE__*/React.createElement("div", {
       className: "np-tile-price"
     }, NPF.money(info.p.price), info.p.unit === 'kg' && /*#__PURE__*/React.createElement("small", null, " z\u0142/kg")));
   });
@@ -105,9 +106,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       edit = _ref2.edit,
       setEdit = _ref2.setEdit,
       onTile = _ref2.onTile,
-      counts = _ref2.counts,
       onEditSlot = _ref2.onEditSlot,
       showF = _ref2.showF;
+    var pv = useProductsVer();
     var carRef = useRef(null);
     var _useState = useState(0),
       _useState2 = _slicedToArray(_useState, 2),
@@ -353,7 +354,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
             className: "np-slot-in"
           }, /*#__PURE__*/React.createElement(Tile, {
             slot: slot,
-            showF: showF
+            showF: showF,
+            pv: pv
           }), edit && slot && /*#__PURE__*/React.createElement("button", {
             className: "np-tile-rm",
             onPointerDown: function onPointerDown(e) {
@@ -381,12 +383,13 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }
     }, /*#__PURE__*/React.createElement(Tile, {
       slot: ghost.slot,
-      showF: showF
+      showF: showF,
+      pv: pv
     }))), /*#__PURE__*/React.createElement("div", {
       className: "np-pagebar"
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-pagebar-name"
-    }, edit ? 'Przeciągnij lub dotknij kafelek' : pages[page] && pages[page].name), /*#__PURE__*/React.createElement("div", {
+    }, edit ? 'Przeciągnij lub dotknij kafelek' : ''), /*#__PURE__*/React.createElement("div", {
       className: "np-dots"
     }, pages.map(function (_, i) {
       return /*#__PURE__*/React.createElement("button", {
@@ -423,11 +426,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       cols = _ref5.cols,
       onTile = _ref5.onTile,
       onEdit = _ref5.onEdit,
-      counts = _ref5.counts,
       _ref5$className = _ref5.className,
       className = _ref5$className === void 0 ? 'np-kbrow' : _ref5$className,
       _ref5$edit = _ref5.edit,
       edit = _ref5$edit === void 0 ? false : _ref5$edit;
+    var pv = useProductsVer();
     var T = useRef({});
     var down = function down(i) {
       T.current["long"] = false;
@@ -475,7 +478,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }, /*#__PURE__*/React.createElement("div", {
         className: "np-slot-in"
       }, /*#__PURE__*/React.createElement(Tile, {
-        slot: s
+        slot: s,
+        pv: pv
       })));
     }));
   }
@@ -557,7 +561,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }, 30);
     var nq = NPF.norm(q.trim());
     var prods = PRODUCTS.filter(function (p) {
-      return (grp === 'all' || p.group === grp) && (!nq || NPF.norm(p.name).includes(nq) || p.plu === nq || p.ean.includes(nq));
+      return p.active !== false && (grp === 'all' || p.group === grp) && (!nq || NPF.norm(p.name).includes(nq) || p.plu === nq || p.ean.includes(nq));
     });
     var cats = _toConsumableArray(new Set(FUNCS.map(function (f) {
       return f.cat;

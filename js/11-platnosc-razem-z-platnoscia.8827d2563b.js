@@ -68,8 +68,22 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
   var fmtIn = function fmtIn(v) {
     return NPF.money(v).replace(/\u202f/g, '');
   };
+  var paySummaryOn = function paySummaryOn() {
+    try {
+      var s = JSON.parse(localStorage.getItem('nextpro.settings') || '{}') || {};
+      return s.paySummary !== false;
+    } catch (e) {
+      return true;
+    }
+  };
   function PaySheet(_ref) {
-    var total = _ref.total,
+    var cashier = _ref.cashier,
+      subtotal = _ref.subtotal,
+      _ref$rdAmt = _ref.rdAmt,
+      rdAmt = _ref$rdAmt === void 0 ? 0 : _ref$rdAmt,
+      invoice = _ref.invoice,
+      nip = _ref.nip,
+      total = _ref.total,
       count = _ref.count,
       receiptNo = _ref.receiptNo,
       _ref$initialMethod = _ref.initialMethod,
@@ -158,9 +172,14 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
         tendered: isCash ? tv : amount,
         change: change
       };
+      var summary = paySummaryOn();
       var toDone = function toDone() {
+        if (!summary && change <= 0) {
+          finish();
+          return;
+        }
         setPhase('done');
-        if (auto && change <= 0) later(finish, 1500);
+        if (auto && change <= 0) later(finish, 2600);
       };
       if (isTerminal(method)) {
         setPhase('terminal');
@@ -187,37 +206,63 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
       }
       return true;
     }, 30);
-    if (phase !== 'input') {
+    if (phase !== 'input' && phase !== 'done') {
       var r = result.current;
       var tm = phase === 'part' ? partMethod : method;
       var amt = phase === 'part' ? amount : r ? r.payments[r.payments.length - 1].amount : total;
-      var title = phase === 'part' || phase === 'terminal' ? tm === 'blik' ? 'Oczekiwanie na kod BLIK' : 'Zbliż lub włóż kartę' : phase === 'printing' ? 'Drukowanie paragonu…' : "Paragon ".concat(npPad4(receiptNo), " wydrukowany");
-      var desc = phase === 'part' || phase === 'terminal' ? "Terminal p\u0142atniczy \xB7 ".concat(NPF.money(amt), " z\u0142").concat(phase === 'part' ? ' · płatność częściowa' : '') : phase === 'printing' ? 'Nie odrywaj paragonu do końca wydruku' : "".concat(METHOD_NAME[r.method], " \xB7 ").concat(NPF.money(total), " z\u0142").concat(r.method === 'cash' && r.change > 0 ? " \xB7 wp\u0142ata ".concat(NPF.money(r.tendered), " z\u0142") : '');
+      var title = phase === 'part' || phase === 'terminal' ? tm === 'blik' ? 'Oczekiwanie na kod BLIK' : 'Zbliż lub włóż kartę' : 'Drukowanie paragonu…';
+      var desc = phase === 'part' || phase === 'terminal' ? "Terminal p\u0142atniczy \xB7 ".concat(NPF.money(amt), " z\u0142").concat(phase === 'part' ? ' · płatność częściowa' : '') : 'Nie odrywaj paragonu do końca wydruku';
       return /*#__PURE__*/React.createElement(Sheet, {
         className: "np-pay np-pay-status"
-      }, phase === 'done' ? /*#__PURE__*/React.createElement("div", {
-        className: "np-dlg-ico t-success big"
-      }, /*#__PURE__*/React.createElement(Icon, {
-        name: "check"
-      })) : /*#__PURE__*/React.createElement("span", {
+      }, /*#__PURE__*/React.createElement("span", {
         className: "np-spinner big"
       }), /*#__PURE__*/React.createElement("div", {
         className: "np-pay-status-title"
       }, title), /*#__PURE__*/React.createElement("div", {
         className: "np-pay-status-desc"
-      }, desc), phase === 'done' && r.payments.length > 1 && /*#__PURE__*/React.createElement("div", {
-        className: "np-dlg-rows"
-      }, r.payments.map(function (p, i) {
+      }, desc));
+    }
+    if (phase === 'done') {
+      var _r = result.current;
+      var now = new Date();
+      var _short = !paySummaryOn();
+      return /*#__PURE__*/React.createElement(Sheet, {
+        className: "np-pay np-done"
+      }, /*#__PURE__*/React.createElement("div", {
+        className: "np-done-head"
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "np-done-ok"
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: "check"
+      })), /*#__PURE__*/React.createElement("div", {
+        className: "np-done-t"
+      }, /*#__PURE__*/React.createElement("b", null, invoice ? 'Faktura' : 'Paragon', " ", npPad4(receiptNo), " zamkni\u0119ty"), /*#__PURE__*/React.createElement("small", null, NPF.time(now), " \xB7 ", cashier ? cashier.name : '', " \xB7 ", count, " ", count === 1 ? 'pozycja' : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14) ? 'pozycje' : 'pozycji', nip ? ' · NIP ' + NPF.nip(nip) : ''))), /*#__PURE__*/React.createElement("div", {
+        className: "np-done-body"
+      }, /*#__PURE__*/React.createElement("div", {
+        className: "np-done-sum"
+      }, /*#__PURE__*/React.createElement("span", null, "Suma"), /*#__PURE__*/React.createElement("b", null, NPF.money(total), /*#__PURE__*/React.createElement("small", null, "z\u0142")), rdAmt !== 0 && /*#__PURE__*/React.createElement("em", {
+        className: rdAmt < 0 ? 'up' : ''
+      }, rdAmt < 0 ? 'narzut +' : 'rabat −', NPF.money(Math.abs(rdAmt)), " z\u0142 \xB7 suma pozycji ", NPF.money(subtotal), " z\u0142")), /*#__PURE__*/React.createElement("div", {
+        className: "np-done-pays"
+      }, _r.payments.map(function (x, i) {
         return /*#__PURE__*/React.createElement("div", {
           key: i,
-          className: "np-dlg-row"
-        }, /*#__PURE__*/React.createElement("span", null, METHOD_NAME[p.method]), /*#__PURE__*/React.createElement("b", null, NPF.money(p.amount), " z\u0142"));
-      })), phase === 'done' && r.change > 0 && /*#__PURE__*/React.createElement("div", {
-        className: "np-change"
-      }, /*#__PURE__*/React.createElement("span", null, "Reszta"), /*#__PURE__*/React.createElement("b", null, NPF.money(r.change), /*#__PURE__*/React.createElement("small", null, "z\u0142"))), phase === 'done' && /*#__PURE__*/React.createElement("button", {
+          className: "np-done-pay"
+        }, /*#__PURE__*/React.createElement("span", {
+          className: "np-done-pay-ico"
+        }, /*#__PURE__*/React.createElement(Icon, {
+          name: ICON[x.method]
+        })), /*#__PURE__*/React.createElement("span", null, METHOD_NAME[x.method]), /*#__PURE__*/React.createElement("b", null, NPF.money(x.method === 'cash' && _r.change > 0 && i === _r.payments.length - 1 ? x.amount + _r.change : x.amount), " z\u0142"));
+      }))), _r.change > 0 && /*#__PURE__*/React.createElement("div", {
+        className: "np-done-change"
+      }, /*#__PURE__*/React.createElement("span", null, "Reszta do wydania"), /*#__PURE__*/React.createElement("b", null, NPF.money(_r.change), /*#__PURE__*/React.createElement("small", null, "z\u0142"))), /*#__PURE__*/React.createElement("div", {
+        className: "np-done-foot"
+      }, auto && _r.change <= 0 && /*#__PURE__*/React.createElement("div", {
+        className: "np-done-auto"
+      }, /*#__PURE__*/React.createElement("i", null)), /*#__PURE__*/React.createElement("button", {
         className: "np-btn green wide",
         onClick: finish
-      }, "Nowy paragon"));
+      }, _short ? 'OK' : 'Nowy paragon')));
     }
     var primary = invalid ? 'Zatwierdź płatność' : partial ? "Zap\u0142a\u0107 cz\u0119\u015B\u0107 \xB7 ".concat(NPF.money(amount), " z\u0142") : isTerminal(method) ? 'Wyślij do terminala' : method === 'bon' ? 'Zatwierdź bon' : 'Zatwierdź płatność';
     return /*#__PURE__*/React.createElement(Sheet, {

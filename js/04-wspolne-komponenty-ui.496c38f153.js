@@ -175,6 +175,25 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     });
     location.reload();
   }
+  // Wersja bazy towarów — widoki przerysowują się po zapisaniu towaru
+  function useProductsVer() {
+    var _useState3 = useState(function () {
+        return NP_DB.ver();
+      }),
+      _useState4 = _slicedToArray(_useState3, 2),
+      v = _useState4[0],
+      setV = _useState4[1];
+    useEffect(function () {
+      var h = function h() {
+        return setV(NP_DB.ver());
+      };
+      window.addEventListener('np-products', h);
+      return function () {
+        return window.removeEventListener('np-products', h);
+      };
+    }, []);
+    return v;
+  }
   // Stabilny callback wywołujący zawsze najnowszą wersję funkcji (dla React.memo)
   function useEvent(fn) {
     var r = useRef(fn);
@@ -185,12 +204,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   }
   // Zegar odświeżany raz na minutę, wyrównany do pełnej minuty (pokazujemy tylko HH:MM)
   function useMinute() {
-    var _useState3 = useState(function () {
+    var _useState5 = useState(function () {
         return new Date();
       }),
-      _useState4 = _slicedToArray(_useState3, 2),
-      n = _useState4[0],
-      setN = _useState4[1];
+      _useState6 = _slicedToArray(_useState5, 2),
+      n = _useState6[0],
+      setN = _useState6[1];
     useEffect(function () {
       var t;
       var next = function next() {
@@ -217,12 +236,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   }
   function useNow() {
     var ms = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 1000;
-    var _useState5 = useState(function () {
+    var _useState7 = useState(function () {
         return new Date();
       }),
-      _useState6 = _slicedToArray(_useState5, 2),
-      n = _useState6[0],
-      setN = _useState6[1];
+      _useState8 = _slicedToArray(_useState7, 2),
+      n = _useState8[0],
+      setN = _useState8[1];
     useEffect(function () {
       var t = setInterval(function () {
         return setN(new Date());
@@ -516,10 +535,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       onConfirm = _ref8.onConfirm,
       _ref8$prio = _ref8.prio,
       prio = _ref8$prio === void 0 ? 30 : _ref8$prio;
-    var _useState7 = useState(initial),
-      _useState8 = _slicedToArray(_useState7, 2),
-      v = _useState8[0],
-      setV = _useState8[1];
+    var _useState9 = useState(initial),
+      _useState0 = _slicedToArray(_useState9, 2),
+      v = _useState0[0],
+      setV = _useState0[1];
     var err = v !== '' && validate ? validate(v) : null;
     var ok = v !== '' && !err;
     var submit = function submit() {
@@ -584,7 +603,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       onHide = _ref9.onHide,
       onEnter = _ref9.onEnter,
       _ref9$enterLabel = _ref9.enterLabel,
-      enterLabel = _ref9$enterLabel === void 0 ? 'OK' : _ref9$enterLabel;
+      enterLabel = _ref9$enterLabel === void 0 ? 'OK' : _ref9$enterLabel,
+      _ref9$extra = _ref9.extra,
+      extra = _ref9$extra === void 0 ? '' : _ref9$extra;
     var keep = function keep(e) {
       return e.preventDefault();
     };
@@ -632,6 +653,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         return K({
           k: c,
           cls: i === 1 || i === 0 ? 'alt' : ''
+        });
+      }), i === 0 && extra && extra.split('').map(function (c) {
+        return K({
+          k: c,
+          cls: 'alt'
         });
       }), i === 4 && K({
         k: 'BACK',
@@ -693,20 +719,20 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       children = _ref10.children,
       innerRef = _ref10.innerRef;
     var ref = useRef(null);
-    var _useState9 = useState({
+    var _useState1 = useState({
         can: false,
         top: 0,
         h: 0,
         atTop: true,
         atEnd: true
       }),
-      _useState0 = _slicedToArray(_useState9, 2),
-      st = _useState0[0],
-      setSt = _useState0[1];
-    var _useState1 = useState(false),
       _useState10 = _slicedToArray(_useState1, 2),
-      active = _useState10[0],
-      setActive = _useState10[1];
+      st = _useState10[0],
+      setSt = _useState10[1];
+    var _useState11 = useState(false),
+      _useState12 = _slicedToArray(_useState11, 2),
+      active = _useState12[0],
+      setActive = _useState12[1];
     var T = useRef({});
     var measure = function measure() {
       var el = ref.current;
@@ -832,7 +858,69 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   // Dopasowanie napisów na kafelkach: długie pojedyncze słowa nie mogą wychodzić poza kafelek —
   // zmniejszamy czcionkę etykiety krokami 0,5px (min. 10px), aż słowo się zmieści.
   var FIT_SEL = '.np-tile-label, .np-mi-label';
+  // Kafelki: duża czcionka bez zmniejszania; jeśli nazwa się nie mieści — ucinamy na pełnej linii z „…”
+  var NP_MEASURE = document.createElement('canvas').getContext('2d');
+  function clampTileLabel(el) {
+    el.style.webkitLineClamp = '';
+    el.style.maxHeight = '';
+    el.style.fontSize = '';
+    el.style.overflowWrap = '';
+    el.classList.remove('tr');
+    el.removeAttribute('data-trunc');
+    if (!el.clientWidth) return;
+    // słowo dłuższe niż kafelek: ucinamy je z „…” (bez łamania w środku wyrazu); tekst pokazuje ::after, React dalej zarządza <span>
+    if (el.scrollWidth > el.clientWidth + 1) {
+      var span = el.firstElementChild;
+      var full = (span ? span.textContent : el.textContent) || '';
+      var cs = getComputedStyle(el);
+      NP_MEASURE.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+      var avail = el.clientWidth - 1,
+        W = function W(t) {
+          return NP_MEASURE.measureText(t).width;
+        };
+      var out = '';
+      var _iterator = _createForOfIteratorHelper(full.split(/(\s+)/)),
+        _step;
+      try {
+        for (_iterator.s(); !(_step = _iterator.n()).done;) {
+          var w = _step.value;
+          if (!w || /^\s+$/.test(w)) {
+            out += w;
+            continue;
+          }
+          if (W(w) <= avail) {
+            out += w;
+            continue;
+          }
+          var lo = 1,
+            hi = w.length;
+          while (lo < hi) {
+            var mid = lo + hi + 1 >> 1;
+            if (W(w.slice(0, mid) + '…') <= avail) lo = mid;else hi = mid - 1;
+          }
+          out += w.slice(0, lo) + '…';
+          break;
+        }
+      } catch (err) {
+        _iterator.e(err);
+      } finally {
+        _iterator.f();
+      }
+      el.setAttribute('data-trunc', out.trim());
+      el.classList.add('tr');
+    }
+    if (el.scrollHeight > el.clientHeight + 1) {
+      var lh = parseFloat(getComputedStyle(el).lineHeight) || 18;
+      var lines = Math.max(1, Math.floor((el.clientHeight + 1) / lh));
+      el.style.webkitLineClamp = String(lines);
+      el.style.maxHeight = lines * lh + 'px';
+    }
+  }
   function fitLabel(el) {
+    if (el.classList.contains('np-tile-label')) {
+      clampTileLabel(el);
+      return;
+    }
     el.style.fontSize = '';
     el.style.webkitLineClamp = '';
     el.style.maxHeight = '';
@@ -882,11 +970,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       };
       var mo = new MutationObserver(function (list) {
         var hit = false;
-        var _iterator = _createForOfIteratorHelper(list),
-          _step;
+        var _iterator2 = _createForOfIteratorHelper(list),
+          _step2;
         try {
-          for (_iterator.s(); !(_step = _iterator.n()).done;) {
-            var m = _step.value;
+          for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+            var m = _step2.value;
             var n = m.target.nodeType === 1 ? m.target : m.target.parentElement;
             if (!n) continue;
             var lab = n.closest(FIT_SEL);
@@ -908,9 +996,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
             });
           }
         } catch (err) {
-          _iterator.e(err);
+          _iterator2.e(err);
         } finally {
-          _iterator.f();
+          _iterator2.f();
         }
         if (hit) schedule();
       });
@@ -935,6 +1023,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }, []);
   }
   Object.assign(window, {
+    useProductsVer: useProductsVer,
     useEvent: useEvent,
     useMinute: useMinute,
     LoginClock: LoginClock,
