@@ -56,9 +56,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       return p.id in vals ? vals[p.id] : p.def;
     };
     var set = function set(id, v) {
-      return setVals(function (s) {
-        return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, v));
-      });
+      var nv = _objectSpread(_objectSpread({}, vals), {}, _defineProperty({}, id, v));
+      try {
+        localStorage.setItem('nextpro.settings', JSON.stringify(nv));
+      } catch (e) {}
+      setVals(nv);
+      window.dispatchEvent(new Event('np-settings'));
     };
     var editNum = function editNum(p) {
       return ui.amount({
@@ -130,8 +133,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-menu-main"
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-menu-title"
-    }, c.label), /*#__PURE__*/React.createElement("div", {
-      className: "np-set-list"
+    }, c.label), /*#__PURE__*/React.createElement(ScrollArea, {
+      key: c.id,
+      className: "np-set-list",
+      more: false
     }, c.params.map(function (p) {
       var v = get(p);
       return /*#__PURE__*/React.createElement("div", {
@@ -209,8 +214,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }, /*#__PURE__*/React.createElement(Icon, {
         name: "plus"
       }), "Dodaj")
-    }), /*#__PURE__*/React.createElement("div", {
-      className: "np-list-card"
+    }), /*#__PURE__*/React.createElement(ScrollArea, {
+      className: "np-list-card",
+      more: false
     }, L.rows.map(function (r, i) {
       return /*#__PURE__*/React.createElement("button", {
         key: i,
@@ -414,7 +420,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       cloud: cloud,
       setCloud: setCloud,
       ui: ui
-    }), /*#__PURE__*/React.createElement("div", {
+    }), /*#__PURE__*/React.createElement(ScrollArea, {
+      key: c.id,
+      variant: "out",
       className: 'np-menu-grid sq' + (c.id === 'cloud' && !cloud.logged ? ' dim' : '')
     }, c.items.map(function (it, i) {
       return /*#__PURE__*/React.createElement("button", {
@@ -435,7 +443,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }))));
   }
   Object.assign(window, {
-    MenuView: MenuView,
+    MenuView: React.memo(MenuView),
     SettingsView: SettingsView,
     ListView: ListView
   });

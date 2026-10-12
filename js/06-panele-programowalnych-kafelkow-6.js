@@ -54,9 +54,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       color: slot.color || f.color
     } : null;
   }
-  function Tile(_ref) {
+  var Tile = React.memo(function Tile(_ref) {
     var slot = _ref.slot,
-      count = _ref.count,
       showF = _ref.showF;
     var info = tileInfo(slot);
     if (!info) return /*#__PURE__*/React.createElement("div", {
@@ -65,22 +64,20 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       name: "plus"
     }));
     return /*#__PURE__*/React.createElement("div", {
-      className: "np-tile c-".concat(info.color, " k-").concat(info.kind).concat(count ? ' has-count' : '').concat(info.icon ? ' has-ico' : '').concat(slot.w > 1 || slot.h > 1 ? ' big' : '')
+      className: "np-tile c-".concat(info.color, " k-").concat(info.kind).concat(info.icon ? ' has-ico' : '').concat(slot.w > 1 ? ' big' : '').concat(slot.h > 1 ? ' tall' : '')
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-tile-top"
     }, info.icon ? /*#__PURE__*/React.createElement(Icon, {
       name: info.icon,
       className: "np-tile-ico"
-    }) : /*#__PURE__*/React.createElement("span", null), count ? /*#__PURE__*/React.createElement("span", {
-      className: "np-tile-count"
-    }, count) : showF && info.kind === 'f' ? /*#__PURE__*/React.createElement("span", {
+    }) : /*#__PURE__*/React.createElement("span", null), showF && info.kind === 'f' ? /*#__PURE__*/React.createElement("span", {
       className: "np-tile-f"
     }, "F", info.f.f) : null), /*#__PURE__*/React.createElement("div", {
       className: "np-tile-label"
     }, info.label), info.kind === 'p' && /*#__PURE__*/React.createElement("div", {
       className: "np-tile-price"
     }, NPF.money(info.p.price), info.p.unit === 'kg' && /*#__PURE__*/React.createElement("small", null, " z\u0142/kg")));
-  }
+  });
 
   // Układ strony: które pola zasłaniają powiększone kafelki
   function npLayout(slots, cols, rows) {
@@ -356,8 +353,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
             className: "np-slot-in"
           }, /*#__PURE__*/React.createElement(Tile, {
             slot: slot,
-            showF: showF,
-            count: slot && slot.t === 'p' ? counts[slot.id] : null
+            showF: showF
           }), edit && slot && /*#__PURE__*/React.createElement("button", {
             className: "np-tile-rm",
             onPointerDown: function onPointerDown(e) {
@@ -479,8 +475,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }, /*#__PURE__*/React.createElement("div", {
         className: "np-slot-in"
       }, /*#__PURE__*/React.createElement(Tile, {
-        slot: s,
-        count: s && s.t === 'p' ? counts[s.id] : null
+        slot: s
       })));
     }));
   }
@@ -832,8 +827,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     Tile: Tile,
     tileInfo: tileInfo,
     npLayout: npLayout,
-    PanelsView: PanelsView,
-    TileRow: TileRow,
+    PanelsView: React.memo(PanelsView),
+    TileRow: React.memo(TileRow),
     TileEditor: TileEditor
   });
 })();

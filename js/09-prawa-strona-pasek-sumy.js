@@ -157,7 +157,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
             return d < -50 ? -108 : 0;
           });
         } else if (!S.mode) {
-          if (S.base < 0) setDx(0);else onSel();
+          if (S.base < 0) setDx(0);else onSel(l.id);
         }
         S.mode = null;
       };
@@ -256,10 +256,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       name: "undo-2"
     }), "Storno"))));
   }
+  var ReceiptLineM = React.memo(ReceiptLine);
   function ReceiptPane(props) {
     var lines = props.lines,
       selId = props.selId,
-      setSelId = props.setSelId,
+      onSelLine = props.onSelLine,
       flashId = props.flashId,
       onQty = props.onQty,
       onRemove = props.onRemove,
@@ -301,14 +302,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "receipt"
     }), /*#__PURE__*/React.createElement("b", null, "Paragon jest pusty"), /*#__PURE__*/React.createElement("span", null, "Zeskanuj towar, wpisz kod na klawiaturze albo wybierz kafelek z panelu")) : lines.map(function (l) {
-      return /*#__PURE__*/React.createElement(ReceiptLine, {
+      return /*#__PURE__*/React.createElement(ReceiptLineM, {
         key: l.id,
         l: l,
         sel: selId === l.id,
         flash: flashId === l.id,
-        onSel: function onSel() {
-          return setSelId(selId === l.id ? null : l.id);
-        },
+        onSel: onSelLine,
         onQty: onQty,
         onRemove: onRemove,
         onAction: onLineAction

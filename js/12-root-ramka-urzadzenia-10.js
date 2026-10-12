@@ -34,13 +34,50 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       if (document.readyState === 'complete') reg();else window.addEventListener('load', reg);
     }
   }
+  var pct = function pct(v) {
+    var def = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 100;
+    var m = String(v || '').match(/(\d+)%/);
+    return m ? +m[1] / 100 : def / 100;
+  };
+  function readUiPrefs() {
+    var s = {};
+    try {
+      s = JSON.parse(localStorage.getItem('nextpro.settings') || '{}') || {};
+    } catch (e) {}
+    return {
+      ui: pct(s.uiScale),
+      text: pct(s.textScale)
+    };
+  }
+  function useUiPrefs() {
+    var _useState = useState(readUiPrefs),
+      _useState2 = _slicedToArray(_useState, 2),
+      p = _useState2[0],
+      setP = _useState2[1];
+    useEffect(function () {
+      var h = function h() {
+        return setP(readUiPrefs());
+      };
+      window.addEventListener('np-settings', h);
+      window.addEventListener('storage', h);
+      return function () {
+        window.removeEventListener('np-settings', h);
+        window.removeEventListener('storage', h);
+      };
+    }, []);
+    return p;
+  }
   function Device(_ref) {
     var frame = _ref.frame,
       children = _ref.children;
-    var _useState = useState(1),
-      _useState2 = _slicedToArray(_useState, 2),
-      sc = _useState2[0],
-      setSc = _useState2[1];
+    var prefs = useUiPrefs();
+    var us = prefs.ui;
+    var scrRef = React.useRef(null);
+    useAutoFitLabels(scrRef);
+    var _useState3 = useState(1),
+      _useState4 = _slicedToArray(_useState3, 2),
+      sc = _useState4[0],
+      setSc = _useState4[1];
     var W = frame ? 1336 : 1280,
       H = frame ? 892 : 800,
       M = frame ? 40 : 0;
@@ -63,9 +100,18 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         transform: "translate(-50%, -50%) scale(".concat(sc, ")")
       }
     }, /*#__PURE__*/React.createElement("div", {
+      className: "np-screen-wrap"
+    }, /*#__PURE__*/React.createElement("div", {
       className: "np-screen",
-      "data-screen-label": "Taka Kasa"
-    }, children), frame && /*#__PURE__*/React.createElement("div", {
+      ref: scrRef,
+      "data-screen-label": "Taka Kasa",
+      style: {
+        width: 1280 / us,
+        height: 800 / us,
+        transform: us === 1 ? 'none' : "scale(".concat(us, ")"),
+        '--np-ts': prefs.text
+      }
+    }, children)), frame && /*#__PURE__*/React.createElement("div", {
       className: "np-device-label"
     }, NP_BRAND.a, " ", /*#__PURE__*/React.createElement("b", null, NP_BRAND.b))));
   }
@@ -85,10 +131,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       _useStored2 = _slicedToArray(_useStored, 2),
       session = _useStored2[0],
       setSession = _useStored2[1];
-    var _useState3 = useState('on'),
-      _useState4 = _slicedToArray(_useState3, 2),
-      power = _useState4[0],
-      setPower = _useState4[1];
+    var _useState5 = useState('on'),
+      _useState6 = _slicedToArray(_useState5, 2),
+      power = _useState6[0],
+      setPower = _useState6[1];
     var menuOnly = !!(session && session.menuOnly);
     var cashier = session && (menuOnly ? MENU_USER : NP_DATA.CASHIERS.find(function (c) {
       return c.id === session.cashierId;

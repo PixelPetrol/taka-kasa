@@ -23,7 +23,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     useState = _React.useState,
     useEffect = _React.useEffect,
     useRef = _React.useRef,
-    useMemo = _React.useMemo;
+    useMemo = _React.useMemo,
+    useCallback = _React.useCallback;
   var _NP_DATA = NP_DATA,
     PRODUCTS = _NP_DATA.PRODUCTS,
     FUNCS = _NP_DATA.FUNCS,
@@ -1560,6 +1561,72 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }
       return null;
     };
+
+    // ── stabilne callbacki: React.memo kafelków / pozycji / widoków nie przerysowuje się przy każdym klawiszu ──
+    var onTileS = useEvent(onTile);
+    var onQtyS = useEvent(onQty);
+    var stornoS = useEvent(storno);
+    var onLineActionS = useEvent(onLineAction);
+    var sellListS = useEvent(function (p) {
+      return sell(p, 'list');
+    });
+    var powerDialogS = useEvent(powerDialog);
+    var menuActionS = useEvent(menuAction);
+    var tryLogoutS = useEvent(tryLogout);
+    var goTabS = useEvent(goTab);
+    var openPayCashS = useEvent(function () {
+      return openPay('cash');
+    });
+    var clearRcptDiscS = useCallback(function () {
+      return setRcptDisc(null);
+    }, []);
+    var toggleSel = useCallback(function (id) {
+      return setSelId(function (x) {
+        return x === id ? null : id;
+      });
+    }, []);
+    var editKbRow = useCallback(function (i) {
+      return setEditSlot({
+        src: 'kbrow',
+        s: i
+      });
+    }, []);
+    var editPages = useCallback(function (at) {
+      return setEditSlot(_objectSpread({
+        src: 'pages'
+      }, at));
+    }, []);
+    var editFPages = useCallback(function (at) {
+      return setEditSlot(_objectSpread({
+        src: 'fpages'
+      }, at));
+    }, []);
+    var editQPay = useCallback(function (i) {
+      return setEditSlot({
+        src: 'qpay',
+        s: i
+      });
+    }, []);
+    var uiAmount = useEvent(amount),
+      uiDialog = useEvent(dialog),
+      uiClose = useEvent(close),
+      uiSay = useEvent(say),
+      uiProgress = useEvent(progressThen);
+    var menuUi = useMemo(function () {
+      return {
+        amount: uiAmount,
+        dialog: uiDialog,
+        close: uiClose,
+        say: uiSay,
+        progressThen: uiProgress
+      };
+    }, []);
+    var hasLines = lines.length > 0;
+    var tabDisabled = useMemo(function () {
+      return {
+        menu: hasLines
+      };
+    }, [hasLines]);
     if (menuOnly) {
       var now = new Date();
       return /*#__PURE__*/React.createElement("div", {
@@ -1571,16 +1638,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         key: "menu"
       }, /*#__PURE__*/React.createElement(MenuView, {
         cashier: cashier,
-        onAction: menuAction,
+        onAction: menuActionS,
         onLogout: onLogout,
         exitLabel: "Wyj\u015Bcie",
-        ui: {
-          amount: amount,
-          dialog: dialog,
-          close: close,
-          say: say,
-          progressThen: progressThen
-        }
+        ui: menuUi
       }))), /*#__PURE__*/React.createElement("div", {
         className: "np-right"
       }, /*#__PURE__*/React.createElement("div", {
@@ -1617,17 +1678,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       key: tab
     }, tab === 'klawiatura' && /*#__PURE__*/React.createElement(KeyboardView, {
       hints: tweaks.hints,
-      onLongEsc: powerDialog,
+      onLongEsc: powerDialogS,
       row: kbRow,
       n: gc,
-      onTile: onTile,
-      counts: counts,
-      onEditRow: function onEditRow(s) {
-        return setEditSlot({
-          src: 'kbrow',
-          s: s
-        });
-      }
+      onTile: onTileS,
+      onEditRow: editKbRow
     }), tab === 'panele' && /*#__PURE__*/React.createElement(PanelsView, {
       pages: pages,
       setPages: setPages,
@@ -1637,17 +1692,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       rows: gr,
       edit: edit,
       setEdit: setEdit,
-      onTile: onTile,
-      counts: counts,
-      onEditSlot: function onEditSlot(at) {
-        return setEditSlot(_objectSpread({
-          src: 'pages'
-        }, at));
-      }
+      onTile: onTileS,
+      onEditSlot: editPages
     }), tab === 'towary' && /*#__PURE__*/React.createElement(GoodsView, {
-      onSell: function onSell(p) {
-        return sell(p, 'list');
-      },
+      onSell: sellListS,
       favs: favs,
       setFavs: setFavs,
       counts: counts
@@ -1660,29 +1708,17 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       rows: gr,
       edit: edit,
       setEdit: setEdit,
-      onTile: onTile,
-      counts: counts,
-      onEditSlot: function onEditSlot(at) {
-        return setEditSlot(_objectSpread({
-          src: 'fpages'
-        }, at));
-      }
+      onTile: onTileS,
+      onEditSlot: editFPages
     }), tab === 'menu' && /*#__PURE__*/React.createElement(MenuView, {
       cashier: cashier,
-      onAction: menuAction,
-      onLogout: tryLogout,
-      ui: {
-        amount: amount,
-        dialog: dialog,
-        close: close,
-        say: say,
-        progressThen: progressThen
-      }
+      onAction: menuActionS,
+      onLogout: tryLogoutS,
+      ui: menuUi
     }), fOpen && /*#__PURE__*/React.createElement(FSheet, {
       key: fOpen,
       slots: fKey,
       initialEdit: fOpen === 'edit',
-      counts: counts,
       onClose: function onClose() {
         return setFOpen(false);
       },
@@ -1698,48 +1734,36 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }
     })), /*#__PURE__*/React.createElement(TabBar, {
       tab: tab,
-      setTab: goTab,
-      disabled: {
-        menu: lines.length > 0
-      }
+      setTab: goTabS,
+      disabled: tabDisabled
     })), /*#__PURE__*/React.createElement(ReceiptPane, {
       cashier: cashier,
       receiptNo: receiptNo,
       lines: lines,
       selId: selId,
-      setSelId: setSelId,
+      onSelLine: toggleSel,
       flashId: flashId,
-      onQty: onQty,
-      onRemove: storno,
-      onLineAction: onLineAction,
+      onQty: onQtyS,
+      onRemove: stornoS,
+      onLineAction: onLineActionS,
       total: total,
       subtotal: subtotal,
       rdAmt: rdAmt,
       rcptDisc: rcptDisc,
-      onClearRcptDisc: function onClearRcptDisc() {
-        return setRcptDisc(null);
-      },
+      onClearRcptDisc: clearRcptDiscS,
       nip: nip,
       invoice: invoice,
       scanFlash: scanFlash,
       buf: _objectSpread(_objectSpread({}, buf), {}, {
         lastEvent: lastEvent
       }),
-      onPay: function onPay() {
-        return openPay('cash');
-      },
+      onPay: openPayCashS,
       quick: /*#__PURE__*/React.createElement(TileRow, {
         className: "np-qpay",
         slots: qPay,
         n: 3,
-        onTile: onTile,
-        onEdit: function onEdit(i) {
-          return setEditSlot({
-            src: 'qpay',
-            s: i
-          });
-        },
-        counts: {}
+        onTile: onTileS,
+        onEdit: editQPay
       })
     }), sheet && renderSheet(), editSlot && /*#__PURE__*/React.createElement(TileEditor, {
       key: JSON.stringify(editSlot),

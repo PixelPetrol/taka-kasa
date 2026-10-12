@@ -1,5 +1,6 @@
 "use strict";
 
+function _createForOfIteratorHelper(r, e) { var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (!t) { if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) { t && (r = t); var _n = 0, F = function F() {}; return { s: F, n: function n() { return _n >= r.length ? { done: !0 } : { done: !1, value: r[_n++] }; }, e: function e(r) { throw r; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var o, a = !0, u = !1; return { s: function s() { t = t.call(r); }, n: function n() { var r = t.next(); return a = r.done, r; }, e: function e(r) { u = !0, o = r; }, f: function f() { try { a || null == t["return"] || t["return"](); } finally { if (u) throw o; } } }; }
 function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
@@ -11,7 +12,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   var _React = React,
     useState = _React.useState,
     useEffect = _React.useEffect,
-    useRef = _React.useRef;
+    useRef = _React.useRef,
+    useCallback = _React.useCallback;
 
   // ── Szyna klawiszy: klawiatura ekranowa (1:1 z fizyczną) + klawiatura PC ──
   var NPKeys = function () {
@@ -102,6 +104,28 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   }
 
   // ── Stan trwały (localStorage, prefiks nextpro.) ──
+  // Zapis do localStorage z opóźnieniem 300 ms; zaległe zapisy są wypychane przy odmontowaniu i zamknięciu strony
+  var NP_PENDING = new Map();
+  var npWrite = function npWrite(k, v) {
+    try {
+      localStorage.setItem(k, JSON.stringify(v));
+    } catch (e) {}
+  };
+  function npFlushStored() {
+    if (window.__npNoFlush) return;
+    NP_PENDING.forEach(function (v, k) {
+      return npWrite(k, v);
+    });
+    NP_PENDING.clear();
+  }
+  if (!window.__npFlushBound) {
+    window.__npFlushBound = true;
+    window.addEventListener('pagehide', npFlushStored);
+    window.addEventListener('beforeunload', npFlushStored);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) npFlushStored();
+    });
+  }
   function useStored(key, init) {
     var full = 'nextpro.' + key;
     var _useState = useState(function () {
@@ -114,14 +138,36 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       _useState2 = _slicedToArray(_useState, 2),
       v = _useState2[0],
       setV = _useState2[1];
+    var first = useRef(true);
     useEffect(function () {
-      try {
-        localStorage.setItem(full, JSON.stringify(v));
-      } catch (e) {}
+      if (first.current) {
+        first.current = false;
+        return undefined;
+      }
+      NP_PENDING.set(full, v);
+      var t = setTimeout(function () {
+        if (NP_PENDING.get(full) === v) {
+          NP_PENDING["delete"](full);
+          npWrite(full, v);
+        }
+      }, 300);
+      return function () {
+        return clearTimeout(t);
+      };
     }, [full, v]);
+    useEffect(function () {
+      return function () {
+        if (NP_PENDING.has(full) && !window.__npNoFlush) {
+          npWrite(full, NP_PENDING.get(full));
+          NP_PENDING["delete"](full);
+        }
+      };
+    }, [full]);
     return [v, setV];
   }
   function npResetStorage(keys) {
+    window.__npNoFlush = true;
+    NP_PENDING.clear();
     Object.keys(localStorage).filter(function (k) {
       return k.startsWith('nextpro.') && (!keys || keys.includes(k.slice(9)));
     }).forEach(function (k) {
@@ -129,14 +175,54 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     });
     location.reload();
   }
-  function useNow() {
-    var ms = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 1000;
+  // Stabilny callback wywołujący zawsze najnowszą wersję funkcji (dla React.memo)
+  function useEvent(fn) {
+    var r = useRef(fn);
+    r.current = fn;
+    return useCallback(function () {
+      return r.current.apply(r, arguments);
+    }, []);
+  }
+  // Zegar odświeżany raz na minutę, wyrównany do pełnej minuty (pokazujemy tylko HH:MM)
+  function useMinute() {
     var _useState3 = useState(function () {
         return new Date();
       }),
       _useState4 = _slicedToArray(_useState3, 2),
       n = _useState4[0],
       setN = _useState4[1];
+    useEffect(function () {
+      var t;
+      var next = function next() {
+        return 60000 - Date.now() % 60000 + 30;
+      };
+      var _tick = function tick() {
+        setN(new Date());
+        t = setTimeout(_tick, next());
+      };
+      t = setTimeout(_tick, next());
+      return function () {
+        return clearTimeout(t);
+      };
+    }, []);
+    return n;
+  }
+  function LoginClock() {
+    var now = useMinute();
+    return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      className: "np-login-time"
+    }, NPF.time(now)), /*#__PURE__*/React.createElement("div", {
+      className: "np-login-date"
+    }, NPF.dateFull(now)));
+  }
+  function useNow() {
+    var ms = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 1000;
+    var _useState5 = useState(function () {
+        return new Date();
+      }),
+      _useState6 = _slicedToArray(_useState5, 2),
+      n = _useState6[0],
+      setN = _useState6[1];
     useEffect(function () {
       var t = setInterval(function () {
         return setN(new Date());
@@ -155,6 +241,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   };
   var EXTRA_ICONS = {
     menu: S('<path d="M4 7h16M4 12h16M4 17h16"/>'),
+    'chevron-down': S('<path d="m6 9 6 6 6-6"/>'),
+    'chevron-up': S('<path d="m18 15-6-6-6 6"/>'),
     headset: S('<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/><path d="M21 19a3 3 0 0 1-3 3h-4"/>'),
     cloud: S('<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>'),
     'refresh-cw': S('<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>'),
@@ -214,7 +302,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     });
   }
   function StatusBar() {
-    var now = useNow(5000);
+    var now = useMinute();
     return /*#__PURE__*/React.createElement("div", {
       className: "np-status"
     }, /*#__PURE__*/React.createElement("div", {
@@ -349,6 +437,19 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className = _ref7$className === void 0 ? '' : _ref7$className,
       _ref7$labels = _ref7.labels,
       labels = _ref7$labels === void 0 ? {} : _ref7$labels;
+    var h = useRef(null);
+    var pd = function pd(e, k) {
+      if (e.button && e.button > 0 || !k) return;
+      h.current = k;
+      onKey(k);
+    };
+    var cl = function cl(k) {
+      if (h.current === k) {
+        h.current = null;
+        return;
+      }
+      if (k) onKey(k);
+    };
     return /*#__PURE__*/React.createElement("div", {
       className: 'np-numpad ' + className
     }, keys.flat().map(function (k, i) {
@@ -356,8 +457,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         key: i,
         className: 'np-nk' + (k === 'OK' ? ' ok' : k === 'BACK' || k === 'C' || labels[k] ? ' muted' : '') + (k === '' ? ' blank' : ''),
         disabled: k === '',
+        onPointerDown: function onPointerDown(e) {
+          return pd(e, k);
+        },
         onClick: function onClick() {
-          return k && onKey(k);
+          return cl(k);
         }
       }, k === 'BACK' ? /*#__PURE__*/React.createElement(Icon, {
         name: "backspace"
@@ -412,10 +516,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       onConfirm = _ref8.onConfirm,
       _ref8$prio = _ref8.prio,
       prio = _ref8$prio === void 0 ? 30 : _ref8$prio;
-    var _useState5 = useState(initial),
-      _useState6 = _slicedToArray(_useState5, 2),
-      v = _useState6[0],
-      setV = _useState6[1];
+    var _useState7 = useState(initial),
+      _useState8 = _slicedToArray(_useState7, 2),
+      v = _useState8[0],
+      setV = _useState8[1];
     var err = v !== '' && validate ? validate(v) : null;
     var ok = v !== '' && !err;
     var submit = function submit() {
@@ -484,17 +588,37 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var keep = function keep(e) {
       return e.preventDefault();
     };
+    var h = useRef(null);
+    var fire = function fire(k) {
+      return k === '__enter' ? onEnter && onEnter() : k === '__hide' ? onHide && onHide() : onKey(k);
+    };
+    var pd = function pd(e, k) {
+      e.preventDefault();
+      if (e.button && e.button > 0) return;
+      h.current = k;
+      fire(k);
+    };
+    var cl = function cl(k) {
+      if (h.current === k) {
+        h.current = null;
+        return;
+      }
+      fire(k);
+    };
     var K = function K(_ref0) {
       var k = _ref0.k,
         _ref0$cls = _ref0.cls,
         cls = _ref0$cls === void 0 ? '' : _ref0$cls,
         children = _ref0.children;
       return /*#__PURE__*/React.createElement("button", {
+        key: k,
         className: 'np-osk-k ' + cls,
-        onPointerDown: keep,
+        onPointerDown: function onPointerDown(e) {
+          return pd(e, k);
+        },
         onMouseDown: keep,
         onClick: function onClick() {
-          return onKey(k);
+          return cl(k);
         }
       }, children || k);
     };
@@ -505,39 +629,40 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         key: i,
         className: "np-osk-row"
       }, r.split('').map(function (c) {
-        return /*#__PURE__*/React.createElement(K, {
-          key: c,
+        return K({
           k: c,
           cls: i === 1 || i === 0 ? 'alt' : ''
         });
-      }), i === 4 && /*#__PURE__*/React.createElement(K, {
-        k: "BACK",
-        cls: "wide alt"
-      }, /*#__PURE__*/React.createElement(Icon, {
-        name: "backspace"
-      })));
+      }), i === 4 && K({
+        k: 'BACK',
+        cls: 'wide alt',
+        children: /*#__PURE__*/React.createElement(Icon, {
+          name: "backspace"
+        })
+      }));
     }), /*#__PURE__*/React.createElement("div", {
       className: "np-osk-row"
-    }, onEnter ? /*#__PURE__*/React.createElement(K, {
-      k: "CLEAR",
-      cls: "wide alt"
-    }, "Wyczy\u015B\u0107") : /*#__PURE__*/React.createElement("button", {
-      className: "np-osk-k wide alt",
-      onPointerDown: keep,
-      onMouseDown: keep,
-      onClick: onHide
-    }, "Ukryj"), /*#__PURE__*/React.createElement(K, {
-      k: " ",
-      cls: "space"
-    }, "spacja"), onEnter ? /*#__PURE__*/React.createElement("button", {
-      className: "np-osk-k wide enter",
-      onPointerDown: keep,
-      onMouseDown: keep,
-      onClick: onEnter
-    }, enterLabel) : /*#__PURE__*/React.createElement(K, {
-      k: "CLEAR",
-      cls: "wide alt"
-    }, "Wyczy\u015B\u0107")));
+    }, onEnter ? K({
+      k: 'CLEAR',
+      cls: 'wide alt',
+      children: 'Wyczyść'
+    }) : K({
+      k: '__hide',
+      cls: 'wide alt',
+      children: 'Ukryj'
+    }), K({
+      k: ' ',
+      cls: 'space',
+      children: 'spacja'
+    }), onEnter ? K({
+      k: '__enter',
+      cls: 'wide enter',
+      children: enterLabel
+    }) : K({
+      k: 'CLEAR',
+      cls: 'wide alt',
+      children: 'Wyczyść'
+    })));
   }
   function Avatar(_ref1) {
     var c = _ref1.c,
@@ -556,14 +681,273 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }
     }, ini);
   }
+
+  // Obszar przewijany z własnym wskaźnikiem (pasek z uchwytem, wygaszenie krawędzi, przycisk „więcej”)
+  function ScrollArea(_ref10) {
+    var _ref10$className = _ref10.className,
+      className = _ref10$className === void 0 ? '' : _ref10$className,
+      _ref10$variant = _ref10.variant,
+      variant = _ref10$variant === void 0 ? '' : _ref10$variant,
+      _ref10$more = _ref10.more,
+      more = _ref10$more === void 0 ? true : _ref10$more,
+      children = _ref10.children,
+      innerRef = _ref10.innerRef;
+    var ref = useRef(null);
+    var _useState9 = useState({
+        can: false,
+        top: 0,
+        h: 0,
+        atTop: true,
+        atEnd: true
+      }),
+      _useState0 = _slicedToArray(_useState9, 2),
+      st = _useState0[0],
+      setSt = _useState0[1];
+    var _useState1 = useState(false),
+      _useState10 = _slicedToArray(_useState1, 2),
+      active = _useState10[0],
+      setActive = _useState10[1];
+    var T = useRef({});
+    var measure = function measure() {
+      var el = ref.current;
+      if (!el) return;
+      var sh = el.scrollHeight,
+        ch = el.clientHeight,
+        sTop = el.scrollTop;
+      var can = sh > ch + 2;
+      var track = ch - 16,
+        h = can ? Math.max(40, track * (ch / sh)) : 0;
+      var top = can ? sTop / (sh - ch) * (track - h) : 0;
+      setSt(function (p) {
+        return p.can === can && Math.abs(p.top - top) < 0.5 && Math.abs(p.h - h) < 0.5 && p.atTop === sTop < 4 && p.atEnd === sTop > sh - ch - 4 ? p : {
+          can: can,
+          top: top,
+          h: h,
+          atTop: sTop < 4,
+          atEnd: sTop > sh - ch - 4
+        };
+      });
+    };
+    useEffect(function () {
+      var el = ref.current;
+      if (!el) return undefined;
+      if (innerRef) innerRef.current = el;
+      var raf = 0;
+      var onScroll = function onScroll() {
+        if (!raf) raf = requestAnimationFrame(function () {
+          raf = 0;
+          measure();
+        });
+        if (!T.current.on) {
+          T.current.on = true;
+          setActive(true);
+        }
+        clearTimeout(T.current.a);
+        T.current.a = setTimeout(function () {
+          T.current.on = false;
+          setActive(false);
+        }, 900);
+      };
+      el.addEventListener('scroll', onScroll, {
+        passive: true
+      });
+      var ro = new ResizeObserver(measure);
+      ro.observe(el);
+      Array.from(el.children).forEach(function (c) {
+        return ro.observe(c);
+      });
+      var mo = new MutationObserver(function () {
+        measure();
+        Array.from(el.children).forEach(function (c) {
+          return ro.observe(c);
+        });
+      });
+      mo.observe(el, {
+        childList: true,
+        subtree: true
+      });
+      measure();
+      return function () {
+        el.removeEventListener('scroll', onScroll);
+        ro.disconnect();
+        mo.disconnect();
+        clearTimeout(T.current.a);
+      };
+    }, []);
+    useEffect(measure);
+    var drag = function drag(e) {
+      var el = ref.current;
+      if (!el) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var sc = el.getBoundingClientRect().height / el.offsetHeight || 1;
+      var y0 = e.clientY,
+        s0 = el.scrollTop,
+        range = el.scrollHeight - el.clientHeight,
+        track = el.clientHeight - 16 - st.h;
+      setActive(true);
+      var mv = function mv(ev) {
+        el.scrollTop = s0 + (ev.clientY - y0) / sc * (range / Math.max(1, track));
+      };
+      var _up = function up() {
+        window.removeEventListener('pointermove', mv);
+        window.removeEventListener('pointerup', _up);
+        T.current.a = setTimeout(function () {
+          return setActive(false);
+        }, 600);
+      };
+      window.addEventListener('pointermove', mv);
+      window.addEventListener('pointerup', _up);
+    };
+    var page = function page() {
+      var el = ref.current;
+      if (el) el.scrollBy({
+        top: el.clientHeight * 0.8,
+        behavior: 'smooth'
+      });
+    };
+    var cls = 'np-sa' + (variant ? ' v-' + variant : '') + (st.can ? ' can' : '') + (active ? ' active' : '') + (st.can && !st.atTop ? ' fade-t' : '') + (st.can && !st.atEnd ? ' fade-b' : '');
+    return /*#__PURE__*/React.createElement("div", {
+      className: cls
+    }, /*#__PURE__*/React.createElement("div", {
+      ref: ref,
+      className: className + ' np-sa-in'
+    }, children), /*#__PURE__*/React.createElement("div", {
+      className: "np-sa-bar"
+    }, /*#__PURE__*/React.createElement("i", {
+      style: {
+        height: st.h,
+        transform: "translateY(".concat(st.top, "px)")
+      },
+      onPointerDown: drag
+    })), more && st.can && !st.atEnd && /*#__PURE__*/React.createElement("button", {
+      className: "np-sa-more",
+      onClick: page,
+      "aria-label": "Przewi\u0144 w d\xF3\u0142"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "chevron-down"
+    }), "wi\u0119cej"));
+  }
+
+  // Dopasowanie napisów na kafelkach: długie pojedyncze słowa nie mogą wychodzić poza kafelek —
+  // zmniejszamy czcionkę etykiety krokami 0,5px (min. 10px), aż słowo się zmieści.
+  var FIT_SEL = '.np-tile-label, .np-mi-label';
+  function fitLabel(el) {
+    el.style.fontSize = '';
+    el.style.webkitLineClamp = '';
+    el.style.maxHeight = '';
+    el.style.overflowWrap = '';
+    if (!el.clientWidth) return;
+    var over = function over() {
+      return el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1;
+    };
+    var fs = parseFloat(getComputedStyle(el).fontSize) || 14,
+      n = 0;
+    while (over() && fs > 10 && n++ < 30) {
+      fs -= 0.5;
+      el.style.fontSize = fs + 'px';
+    }
+    // ostateczność: słowo dłuższe niż kafelek nawet przy 10px — łamiemy je, zamiast ucinać
+    if (el.scrollWidth > el.clientWidth + 1) el.style.overflowWrap = 'anywhere';
+    // gdy nadal się nie mieści w pionie: obcinamy na pełnej linii (wielokropek), nigdy w połowie wiersza
+    if (el.scrollHeight > el.clientHeight + 1) {
+      var lh = parseFloat(getComputedStyle(el).lineHeight) || fs * 1.15;
+      var lines = Math.max(1, Math.floor((el.clientHeight + 1) / lh));
+      el.style.webkitLineClamp = String(lines);
+      el.style.maxHeight = lines * lh + 'px';
+    }
+  }
+  function useAutoFitLabels(ref) {
+    useEffect(function () {
+      var root = ref.current;
+      if (!root) return undefined;
+      var pend = new Set();
+      var all = true,
+        t = 0;
+      var flush = function flush() {
+        var els = all ? Array.from(root.querySelectorAll(FIT_SEL)) : Array.from(pend);
+        all = false;
+        pend.clear();
+        els.forEach(function (el) {
+          if (el.isConnected) fitLabel(el);
+        });
+      };
+      var schedule = function schedule() {
+        clearTimeout(t);
+        t = setTimeout(flush, 80);
+      };
+      var runAll = function runAll() {
+        all = true;
+        schedule();
+      };
+      var mo = new MutationObserver(function (list) {
+        var hit = false;
+        var _iterator = _createForOfIteratorHelper(list),
+          _step;
+        try {
+          for (_iterator.s(); !(_step = _iterator.n()).done;) {
+            var m = _step.value;
+            var n = m.target.nodeType === 1 ? m.target : m.target.parentElement;
+            if (!n) continue;
+            var lab = n.closest(FIT_SEL);
+            if (lab) {
+              pend.add(lab);
+              hit = true;
+              continue;
+            }
+            if (m.type === 'childList') m.addedNodes.forEach(function (a) {
+              if (a.nodeType !== 1) return;
+              if (a.matches(FIT_SEL)) {
+                pend.add(a);
+                hit = true;
+              }
+              a.querySelectorAll(FIT_SEL).forEach(function (e) {
+                pend.add(e);
+                hit = true;
+              });
+            });
+          }
+        } catch (err) {
+          _iterator.e(err);
+        } finally {
+          _iterator.f();
+        }
+        if (hit) schedule();
+      });
+      mo.observe(root, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+      var ro = new ResizeObserver(runAll);
+      ro.observe(root);
+      window.addEventListener('np-settings', runAll);
+      window.addEventListener('resize', runAll);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(runAll);
+      runAll();
+      return function () {
+        mo.disconnect();
+        ro.disconnect();
+        clearTimeout(t);
+        window.removeEventListener('np-settings', runAll);
+        window.removeEventListener('resize', runAll);
+      };
+    }, []);
+  }
   Object.assign(window, {
+    useEvent: useEvent,
+    useMinute: useMinute,
+    LoginClock: LoginClock,
+    npFlushStored: npFlushStored,
     NPKeys: NPKeys,
+    useAutoFitLabels: useAutoFitLabels,
+    ScrollArea: ScrollArea,
     useKeys: useKeys,
     useStored: useStored,
     npResetStorage: npResetStorage,
     useNow: useNow,
     Icon: Icon,
-    StatusBar: StatusBar,
+    StatusBar: React.memo(StatusBar),
     Toast: Toast,
     Sheet: Sheet,
     Dialog: Dialog,

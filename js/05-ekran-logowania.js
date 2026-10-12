@@ -60,7 +60,6 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var valRef = useRef('');
     var stRef = useRef('idle');
     stRef.current = state;
-    var now = useNow(1000);
     var setVal = function setVal(v) {
       valRef.current = v;
       setValRaw(v);
@@ -176,11 +175,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-login"
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-login-left"
-    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      className: "np-login-time"
-    }, NPF.time(now)), /*#__PURE__*/React.createElement("div", {
-      className: "np-login-date"
-    }, NPF.dateFull(now))), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement(LoginClock, null), /*#__PURE__*/React.createElement("div", {
       className: "np-login-shop"
     }, /*#__PURE__*/React.createElement("b", null, SHOP.name), /*#__PURE__*/React.createElement("span", null, SHOP.addr), /*#__PURE__*/React.createElement("span", null, SHOP.kasa, " \xB7 ", SHOP.nip), /*#__PURE__*/React.createElement("div", {
       className: "np-login-status"

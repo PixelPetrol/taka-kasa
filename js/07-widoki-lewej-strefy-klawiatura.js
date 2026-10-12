@@ -121,81 +121,112 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         return k;
     }
   }
-  function KeyboardView(_ref) {
-    var hints = _ref.hints,
-      onLongEsc = _ref.onLongEsc,
-      row = _ref.row,
-      n = _ref.n,
-      onTile = _ref.onTile,
-      onEditRow = _ref.onEditRow,
-      counts = _ref.counts;
+  var Key = React.memo(function Key(_ref) {
+    var d = _ref.d,
+      press = _ref.press,
+      hints = _ref.hints,
+      onPD = _ref.onPD,
+      onEnd = _ref.onEnd,
+      onCl = _ref.onCl;
+    return /*#__PURE__*/React.createElement("button", {
+      className: 'np-key ' + (d.cls || 'k-digit') + (press ? ' press' : ''),
+      onPointerDown: function onPointerDown(e) {
+        return onPD(e, d.k);
+      },
+      onPointerUp: onEnd,
+      onPointerLeave: onEnd,
+      onPointerCancel: onEnd,
+      onClick: function onClick() {
+        return onCl(d.k);
+      }
+    }, keyFace(d.k), hints && d.hint && /*#__PURE__*/React.createElement("span", {
+      className: "np-key-hint"
+    }, d.hint));
+  });
+  function KeyboardView(_ref2) {
+    var hints = _ref2.hints,
+      onLongEsc = _ref2.onLongEsc,
+      row = _ref2.row,
+      n = _ref2.n,
+      onTile = _ref2.onTile,
+      onEditRow = _ref2.onEditRow;
     var _useState = useState(null),
       _useState2 = _slicedToArray(_useState, 2),
       pressed = _useState2[0],
       setPressed = _useState2[1];
     var T = useRef({});
+    var longRef = useRef(onLongEsc);
+    longRef.current = onLongEsc;
     useEffect(function () {
       return NPKeys.onPress(function (k) {
         setPressed(k);
         clearTimeout(T.current.p);
         T.current.p = setTimeout(function () {
           return setPressed(null);
-        }, 150);
+        }, 140);
       });
     }, []);
-    var down = function down(k) {
-      if (k !== 'ESC') return;
-      T.current["long"] = false;
-      clearTimeout(T.current.l);
-      T.current.l = setTimeout(function () {
-        T.current["long"] = true;
-        onLongEsc();
-      }, 900);
-    };
-    var cancel = function cancel() {
-      return clearTimeout(T.current.l);
-    };
-    var click = function click(k) {
-      if (k === 'ESC' && T.current["long"]) {
+    // Klawisze reagują od razu na dotknięcie (pointerdown); ESC — na puszczenie (przytrzymanie = wyłączanie)
+    var onPD = React.useCallback(function (e, k) {
+      if (e.button && e.button > 0) return;
+      if (k === 'ESC') {
         T.current["long"] = false;
+        clearTimeout(T.current.l);
+        T.current.l = setTimeout(function () {
+          T.current["long"] = true;
+          longRef.current();
+        }, 900);
+        return;
+      }
+      T.current.pd = k;
+      NPKeys.press(k, 'screen');
+    }, []);
+    var onEnd = React.useCallback(function () {
+      return clearTimeout(T.current.l);
+    }, []);
+    var onCl = React.useCallback(function (k) {
+      if (k === 'ESC') {
+        if (T.current["long"]) {
+          T.current["long"] = false;
+          return;
+        }
+        NPKeys.press('ESC', 'screen');
+        return;
+      }
+      if (T.current.pd === k) {
+        T.current.pd = null;
         return;
       }
       NPKeys.press(k, 'screen');
-    };
+    }, []);
     return /*#__PURE__*/React.createElement("div", {
       className: "np-kbv"
     }, /*#__PURE__*/React.createElement(TileRow, {
       slots: row,
       n: n,
       onTile: onTile,
-      onEdit: onEditRow,
-      counts: counts
+      onEdit: onEditRow
     }), /*#__PURE__*/React.createElement("div", {
       className: "np-kb"
     }, KB.map(function (d) {
-      return /*#__PURE__*/React.createElement("button", {
+      return /*#__PURE__*/React.createElement(Key, {
         key: d.k,
-        className: 'np-key ' + (d.cls || 'k-digit') + (pressed === d.k ? ' press' : ''),
-        onPointerDown: function onPointerDown() {
-          return down(d.k);
-        },
-        onPointerUp: cancel,
-        onPointerLeave: cancel,
-        onClick: function onClick() {
-          return click(d.k);
-        }
-      }, keyFace(d.k), hints && d.hint && /*#__PURE__*/React.createElement("span", {
-        className: "np-key-hint"
-      }, d.hint));
+        d: d,
+        press: pressed === d.k,
+        hints: hints,
+        onPD: onPD,
+        onEnd: onEnd,
+        onCl: onCl
+      });
     })));
   }
 
   // ── Towary: grupy asortymentowe, ulubione, wyszukiwarka z klawiaturą ekranową ──
-  function GoodsView(_ref2) {
-    var onSell = _ref2.onSell,
-      favs = _ref2.favs,
-      setFavs = _ref2.setFavs,
-      counts = _ref2.counts;
+  function GoodsView(_ref3) {
+    var onSell = _ref3.onSell,
+      favs = _ref3.favs,
+      setFavs = _ref3.setFavs,
+      counts = _ref3.counts;
     var _NP_DATA = NP_DATA,
       PRODUCTS = _NP_DATA.PRODUCTS,
       GROUPS = _NP_DATA.GROUPS,
@@ -315,8 +346,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       "aria-label": "Wyczy\u015B\u0107"
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "x"
-    }))), /*#__PURE__*/React.createElement("div", {
-      className: "np-glist"
+    }))), /*#__PURE__*/React.createElement(ScrollArea, {
+      key: grp + '|' + nq,
+      className: "np-glist",
+      more: false
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-ghead"
     }, /*#__PURE__*/React.createElement("span", {
@@ -371,13 +404,13 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   // ── Klawisz F: 3 × 3 programowalnych pól (funkcje lub towary) ──
   // Cyfry z klawiatury odpowiadają położeniu pól: 7-8-9 / 4-5-6 / 1-2-3
   var FKEY_DIGITS = ['7', '8', '9', '4', '5', '6', '1', '2', '3'];
-  function FSheet(_ref3) {
-    var slots = _ref3.slots,
-      initialEdit = _ref3.initialEdit,
-      onRun = _ref3.onRun,
-      onEdit = _ref3.onEdit,
-      onClose = _ref3.onClose,
-      counts = _ref3.counts;
+  function FSheet(_ref4) {
+    var slots = _ref4.slots,
+      initialEdit = _ref4.initialEdit,
+      onRun = _ref4.onRun,
+      onEdit = _ref4.onEdit,
+      onClose = _ref4.onClose,
+      counts = _ref4.counts;
     var _useState7 = useState(!!initialEdit),
       _useState8 = _slicedToArray(_useState7, 2),
       edit = _useState8[0],
@@ -429,8 +462,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       cols: 3,
       edit: edit,
       onTile: onRun,
-      onEdit: onEdit,
-      counts: counts
+      onEdit: onEdit
     })));
   }
   var TABS = [{
@@ -454,11 +486,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     label: 'Menu',
     icon: 'menu'
   }];
-  function TabBar(_ref4) {
-    var tab = _ref4.tab,
-      setTab = _ref4.setTab,
-      _ref4$disabled = _ref4.disabled,
-      disabled = _ref4$disabled === void 0 ? {} : _ref4$disabled;
+  function TabBar(_ref5) {
+    var tab = _ref5.tab,
+      setTab = _ref5.setTab,
+      _ref5$disabled = _ref5.disabled,
+      disabled = _ref5$disabled === void 0 ? {} : _ref5$disabled;
     return /*#__PURE__*/React.createElement("div", {
       className: "np-tabs"
     }, TABS.map(function (t) {
@@ -474,9 +506,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }));
   }
   Object.assign(window, {
-    KeyboardView: KeyboardView,
-    GoodsView: GoodsView,
-    TabBar: TabBar,
+    KeyboardView: React.memo(KeyboardView),
+    GoodsView: React.memo(GoodsView),
+    TabBar: React.memo(TabBar),
     FSheet: FSheet
   });
 })();
