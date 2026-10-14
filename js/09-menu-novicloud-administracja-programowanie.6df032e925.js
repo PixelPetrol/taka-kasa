@@ -52,11 +52,29 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var c = SETTINGS.find(function (x) {
       return x.id === cat;
     }) || SETTINGS[0];
+    // Motyw bez zapisanej wartości → aktualny (z Tweaks)
     var get = function get(p) {
-      return p.id in vals ? vals[p.id] : p.def;
+      return p.id in vals ? vals[p.id] : p.id === 'theme' ? document.documentElement.classList.contains('np-dark') ? 'Ciemny' : 'Jasny' : p.def;
     };
+    // Zmiany z zewnątrz (np. motyw z panelu Tweaks) — odśwież widok
+    React.useEffect(function () {
+      var h = function h() {
+        try {
+          var s = JSON.parse(localStorage.getItem('nextpro.settings') || 'null');
+          if (s) setVals(s);
+        } catch (e) {}
+      };
+      window.addEventListener('np-settings', h);
+      return function () {
+        return window.removeEventListener('np-settings', h);
+      };
+    }, []);
     var set = function set(id, v) {
-      var nv = _objectSpread(_objectSpread({}, vals), {}, _defineProperty({}, id, v));
+      var cur = vals;
+      try {
+        cur = JSON.parse(localStorage.getItem('nextpro.settings') || 'null') || vals;
+      } catch (e) {}
+      var nv = _objectSpread(_objectSpread({}, cur), {}, _defineProperty({}, id, v));
       try {
         localStorage.setItem('nextpro.settings', JSON.stringify(nv));
       } catch (e) {}

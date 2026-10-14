@@ -270,6 +270,7 @@
   // Ustawienia (Administracja › Ustawienia) — typ: toggle | num | select | info
   const SETTINGS = [
     { id: 'ogolne', label: 'Parametry ogólne', icon: 'sliders-horizontal', color: 'graphite', params: [
+      { id: 'theme', label: 'Motyw', type: 'select', def: 'Jasny', options: ['Jasny', 'Ciemny'], desc: 'Jasny (domyślnie) – jasne tło, najlepiej czytelny w dobrze oświetlonym sklepie. Ciemny – ciemne tło i jasny tekst; mniej razi wieczorem i w słabym świetle.' },
       { id: 'uiScale', label: 'Wielkość interfejsu', type: 'select', def: '100% (standard)', options: ['90% — więcej miejsca', '100% (standard)', '110%', '120%'], desc: 'Powiększa lub pomniejsza cały ekran: kafelki, klawisze, teksty i odstępy razem, w tych samych proporcjach. Przy większych wartościach mieści się mniej pozycji naraz.' },
       { id: 'textScale', label: 'Wielkość tekstu', type: 'select', def: '100% (standard)', options: ['90%', '100% (standard)', '110%', '120%'], desc: 'Zmienia tylko wielkość napisów. Duże liczby (suma, kwota do zapłaty) i układ ekranu zostają bez zmian, długie nazwy są skracane wielokropkiem.' },
       { id: 'nrKasy', label: 'Numer kasy', type: 'num', def: 1, max: 3, desc: 'Numer kasy, pod jakim będą zapisywane dokumenty w bazie. Służy również do identyfikacji kasy dla zewnętrznych programów.' },

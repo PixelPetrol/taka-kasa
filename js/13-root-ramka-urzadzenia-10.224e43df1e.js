@@ -10,7 +10,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
 (function () {
   var _React = React,
     useState = _React.useState,
-    useEffect = _React.useEffect;
+    useEffect = _React.useEffect,
+    useLayoutEffect = _React.useLayoutEffect;
   var STANDALONE = !!document.querySelector('meta[name="standalone-mode"]');
   // ?ramka=0 / ?ramka=1 — wymuszenie ramki urządzenia z adresu (np. na serwerze)
   var FRAME_Q = function () {
@@ -47,8 +48,34 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     return {
       ui: pct(s.uiScale),
       text: pct(s.textScale),
-      prices: s.tilePrices === true
+      prices: s.tilePrices === true,
+      theme: s.theme === 'Ciemny' ? 'dark' : s.theme === 'Jasny' ? 'light' : null
     };
+  }
+  // Zapis jednego parametru ustawień kasy (to samo co Menu › Ustawienia)
+  function npSetSetting(id, v) {
+    var s = {};
+    try {
+      s = JSON.parse(localStorage.getItem('nextpro.settings') || '{}') || {};
+    } catch (e) {}
+    s[id] = v;
+    try {
+      localStorage.setItem('nextpro.settings', JSON.stringify(s));
+    } catch (e) {}
+    window.dispatchEvent(new Event('np-settings'));
+  }
+  // Motyw: klasa np-dark na <html>; zmiana z krótkim przenikaniem (View Transitions), jeśli przeglądarka je obsługuje
+  function useTheme(dark) {
+    var first = React.useRef(true);
+    useLayoutEffect(function () {
+      var root = document.documentElement;
+      var apply = function apply() {
+        return root.classList.toggle('np-dark', dark);
+      };
+      var skip = first.current || !document.startViewTransition || root.classList.contains('np-dark') === dark;
+      first.current = false;
+      if (skip) apply();else document.startViewTransition(apply);
+    }, [dark]);
   }
   function useUiPrefs() {
     var _useState = useState(readUiPrefs),
@@ -128,6 +155,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       _useTweaks2 = _slicedToArray(_useTweaks, 2),
       t = _useTweaks2[0],
       setTweak = _useTweaks2[1];
+    var prefs = useUiPrefs();
+    var theme = prefs.theme || (t.theme === 'dark' ? 'dark' : 'light');
+    useTheme(theme === 'dark');
     var _useStored = useStored('session', null),
       _useStored2 = _slicedToArray(_useStored, 2),
       session = _useStored2[0],
@@ -223,6 +253,22 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       value: t.frame,
       onChange: function onChange(v) {
         return setTweak('frame', v);
+      }
+    }), /*#__PURE__*/React.createElement(TweakSection, {
+      label: "Wygl\u0105d"
+    }), /*#__PURE__*/React.createElement(TweakRadio, {
+      label: "Motyw",
+      value: theme,
+      options: [{
+        value: 'light',
+        label: 'Jasny'
+      }, {
+        value: 'dark',
+        label: 'Ciemny'
+      }],
+      onChange: function onChange(v) {
+        setTweak('theme', v);
+        npSetSetting('theme', v === 'dark' ? 'Ciemny' : 'Jasny');
       }
     }), /*#__PURE__*/React.createElement(TweakSection, {
       label: "Uk\u0142ad ekranu sprzeda\u017Cy"
