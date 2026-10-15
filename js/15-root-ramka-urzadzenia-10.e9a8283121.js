@@ -156,6 +156,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       t = _useTweaks2[0],
       setTweak = _useTweaks2[1];
     var prefs = useUiPrefs();
+    var gs = useNpSettings();
     var theme = prefs.theme || (t.theme === 'dark' ? 'dark' : 'light');
     useTheme(theme === 'dark');
     var _useStored = useStored('session', null),
@@ -285,6 +286,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       onChange: function onChange(v) {
         return setTweak('qtyStyle', v);
       }
+    }), /*#__PURE__*/React.createElement(TweakToggle, {
+      label: "Menu na pe\u0142nym ekranie (zakrywa paragon)",
+      value: t.menuFull !== false,
+      onChange: function onChange(v) {
+        return setTweak('menuFull', v);
+      }
     }), /*#__PURE__*/React.createElement(TweakRadio, {
       label: "Paragon",
       value: t.receipt,
@@ -318,6 +325,27 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         return setTweak('hints', v);
       }
     }), /*#__PURE__*/React.createElement(TweakSection, {
+      label: "Gastronomia"
+    }), /*#__PURE__*/React.createElement(TweakToggle, {
+      label: "Tryb gastro (zak\u0142adka Gastro)",
+      value: !!gs.gastroTryb,
+      onChange: function onChange(v) {
+        return npSetSetting('gastroTryb', v);
+      }
+    }), /*#__PURE__*/React.createElement(TweakRadio, {
+      label: "Widok stolik\xF3w",
+      value: gs.gastroWidok === 'Plan sali' ? 'plan' : 'grid',
+      options: [{
+        value: 'grid',
+        label: 'Siatka'
+      }, {
+        value: 'plan',
+        label: 'Plan sali'
+      }],
+      onChange: function onChange(v) {
+        return npSetSetting('gastroWidok', v === 'plan' ? 'Plan sali' : 'Siatka');
+      }
+    }), /*#__PURE__*/React.createElement(TweakSection, {
       label: "Dane demo"
     }), /*#__PURE__*/React.createElement(TweakButton, {
       label: "Poka\u017C ekran logowania",
@@ -330,7 +358,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       label: "Przywr\xF3\u0107 domy\u015Blne kafelki",
       secondary: true,
       onClick: function onClick() {
-        return npResetStorage(['pages', 'page', 'fpages', 'fpage', 'kbRow', 'fKey', 'qPay']);
+        return npResetStorage(['pages', 'page', 'fpages', 'fpage', 'kbRow', 'fKey', 'qPay', 'gRow', 'gPlan']);
       }
     }), /*#__PURE__*/React.createElement(TweakButton, {
       label: "Wyczy\u015B\u0107 wszystkie dane",

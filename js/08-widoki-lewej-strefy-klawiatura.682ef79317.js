@@ -604,10 +604,18 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var tab = _ref5.tab,
       setTab = _ref5.setTab,
       _ref5$disabled = _ref5.disabled,
-      disabled = _ref5$disabled === void 0 ? {} : _ref5$disabled;
+      disabled = _ref5$disabled === void 0 ? {} : _ref5$disabled,
+      _ref5$gastro = _ref5.gastro,
+      gastro = _ref5$gastro === void 0 ? false : _ref5$gastro;
+    var list = TABS.filter(function (t) {
+      return !t.gastro || gastro;
+    });
     return /*#__PURE__*/React.createElement("div", {
-      className: "np-tabs"
-    }, TABS.map(function (t) {
+      className: "np-tabs",
+      style: {
+        gridTemplateColumns: "repeat(".concat(list.length, ", minmax(0,1fr))")
+      }
+    }, list.map(function (t) {
       return /*#__PURE__*/React.createElement("button", {
         key: t.id,
         className: 'np-tab' + (tab === t.id ? ' on' : '') + (disabled[t.id] ? ' dis' : ''),

@@ -65,6 +65,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     last: null
   };
   var M = NPF.money;
+  var NO_SALE = ['manager', 'serwis'];
+  var SALE_TABS = ['klawiatura', 'panele', 'funkcjeF', 'towary']; // manager / serwisant: Towary tylko przez Menu › Programowanie
+
   function appendEntry(e, k) {
     if (k === ',') return e.includes(',') ? e : (e || '0') + ',';
     if (e.includes(',')) return e.split(',')[1].length >= 3 ? e : e + k;
@@ -358,10 +361,99 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       _useStored22 = _slicedToArray(_useStored21, 2),
       qPay = _useStored22[0],
       setQPay = _useStored22[1];
-    var _useState9 = useState(false),
+    // ── tryb gastro: rachunki otwarte (ze stolikiem i bez), aktywny rachunek = bieżący paragon ──
+    var gset = useNpSettings();
+    var gastroOn = !!gset.gastroTryb;
+    var gView = gset.gastroWidok === 'Plan sali' ? 'plan' : 'grid';
+    var gTables = Math.max(1, Math.min(96, +gset.gastroStoliki || 20));
+    var _useStored23 = useStored('bills', []),
+      _useStored24 = _slicedToArray(_useStored23, 2),
+      bills = _useStored24[0],
+      setBills = _useStored24[1];
+    var _useStored25 = useStored('curBill', null),
+      _useStored26 = _slicedToArray(_useStored25, 2),
+      curBill = _useStored26[0],
+      setCurBill = _useStored26[1];
+    var _useStored27 = useStored('gRow', NP_DATA.DEFAULT_GROW),
+      _useStored28 = _slicedToArray(_useStored27, 2),
+      gRow = _useStored28[0],
+      setGRow = _useStored28[1];
+    var _useStored29 = useStored('gPlan', null),
+      _useStored30 = _slicedToArray(_useStored29, 2),
+      gPlan = _useStored30[0],
+      setGPlan = _useStored30[1];
+    var _useStored31 = useStored('gNames', {}),
+      _useStored32 = _slicedToArray(_useStored31, 2),
+      gNames = _useStored32[0],
+      setGNames = _useStored32[1];
+    var planN = useMemo(function () {
+      return NP_PLAN.normPlan(gPlan, gTables);
+    }, [gPlan, gTables]);
+    var _useState9 = useState(null),
       _useState0 = _slicedToArray(_useState9, 2),
-      fOpen = _useState0[0],
-      setFOpen = _useState0[1]; // false | 'run' | 'edit'
+      planEdit = _useState0[0],
+      setPlanEdit = _useState0[1]; // indeks sali w edycji planu
+    var _useState1 = useState(false),
+      _useState10 = _slicedToArray(_useState1, 2),
+      moveMode = _useState10[0],
+      setMoveMode = _useState10[1]; // false | { id } — przenoszenie rachunku na inny stolik
+    var _useStored33 = useStored('billsX', []),
+      _useStored34 = _slicedToArray(_useStored33, 2),
+      billsX = _useStored34[0],
+      setBillsX = _useStored34[1]; // anulowane paragony zaparkowane
+    var _useStored35 = useStored('parkNo', 0),
+      _useStored36 = _slicedToArray(_useStored35, 2),
+      parkNo = _useStored36[0],
+      setParkNo = _useStored36[1];
+    var parkNoRef = useRef(parkNo);
+    useEffect(function () {
+      // rachunki sprzed numeracji: kolejne numery wg czasu otwarcia
+      if (!bills.some(function (b) {
+        return !b.no;
+      })) return;
+      var order = bills.slice().sort(function (x, y) {
+        return (x.opened || 0) - (y.opened || 0);
+      }).filter(function (b) {
+        return !b.no;
+      }).map(function (b) {
+        return b.id;
+      });
+      var map = {};
+      order.forEach(function (id) {
+        map[id] = ++parkNoRef.current;
+      });
+      setParkNo(parkNoRef.current);
+      setBills(function (bs) {
+        return bs.map(function (b) {
+          return map[b.id] ? _objectSpread(_objectSpread({}, b), {}, {
+            no: map[b.id]
+          }) : b;
+        });
+      });
+    }, []);
+    useEffect(function () {
+      // jednorazowo: rząd gastro — „Nowy rachunek” → „Zaparkowane”
+      if (gRow.some(function (x) {
+        return x && x.id === 'gNowy';
+      }) && !gRow.some(function (x) {
+        return x && x.id === 'gLista';
+      })) setGRow(function (r) {
+        return r.map(function (x) {
+          return x && x.id === 'gNowy' ? {
+            t: 'f',
+            id: 'gLista'
+          } : x;
+        });
+      });
+    }, []);
+    var billsRef = useRef(bills);
+    billsRef.current = bills;
+    var curRef = useRef(curBill);
+    curRef.current = curBill;
+    var _useState11 = useState(false),
+      _useState12 = _slicedToArray(_useState11, 2),
+      fOpen = _useState12[0],
+      setFOpen = _useState12[1]; // false | 'run' | 'edit'
     useEffect(function () {
       if (fpages.some(function (p) {
         return /^Funkcje F/.test(p.name);
@@ -373,22 +465,27 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         });
       });
     }, []);
-    var _useStored23 = useStored('favs', DEFAULT_FAVS),
-      _useStored24 = _slicedToArray(_useStored23, 2),
-      favs = _useStored24[0],
-      setFavs = _useStored24[1];
-    var _useStored25 = useStored('tab', 'panele'),
-      _useStored26 = _slicedToArray(_useStored25, 2),
-      tab = _useStored26[0],
-      setTab = _useStored26[1];
-    var _useStored27 = useStored('page', 0),
-      _useStored28 = _slicedToArray(_useStored27, 2),
-      page = _useStored28[0],
-      setPage = _useStored28[1];
-    var _useState1 = useState(BUF0),
-      _useState10 = _slicedToArray(_useState1, 2),
-      buf = _useState10[0],
-      setBufState = _useState10[1];
+    var _useStored37 = useStored('favs', DEFAULT_FAVS),
+      _useStored38 = _slicedToArray(_useStored37, 2),
+      favs = _useStored38[0],
+      setFavs = _useStored38[1];
+    var _useStored39 = useStored('tab', 'panele'),
+      _useStored40 = _slicedToArray(_useStored39, 2),
+      tab = _useStored40[0],
+      setTab = _useStored40[1];
+    var _useStored41 = useStored('page', 0),
+      _useStored42 = _slicedToArray(_useStored41, 2),
+      page = _useStored42[0],
+      setPage = _useStored42[1];
+    // Role: manager i serwisant bez sprzedaży. Menu na pełnym ekranie (Tweak) zakrywa paragon; w przeciwnym razie paragon jest wyszarzony
+    var noSale = !menuOnly && !!cashier && NO_SALE.includes(cashier.level);
+    var menuFull = tweaks.menuFull !== false;
+    var menuFullOn = menuFull && (menuOnly || tab === 'menu' || noSale && tab === 'towary');
+    var rcptOff = noSale || !menuOnly && tab === 'menu';
+    var _useState13 = useState(BUF0),
+      _useState14 = _slicedToArray(_useState13, 2),
+      buf = _useState14[0],
+      setBufState = _useState14[1];
     var bufRef = useRef(buf);
     var setBuf = function setBuf(patch) {
       var cur = bufRef.current;
@@ -402,42 +499,42 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       linesRef.current = next;
       setLines(next);
     };
-    var _useState11 = useState(null),
-      _useState12 = _slicedToArray(_useState11, 2),
-      lastEvent = _useState12[0],
-      setLastEventRaw = _useState12[1];
-    var _useState13 = useState(null),
-      _useState14 = _slicedToArray(_useState13, 2),
-      selId = _useState14[0],
-      setSelId = _useState14[1];
-    var _useState15 = useState(false),
+    var _useState15 = useState(null),
       _useState16 = _slicedToArray(_useState15, 2),
-      edit = _useState16[0],
-      setEdit = _useState16[1];
+      lastEvent = _useState16[0],
+      setLastEventRaw = _useState16[1];
     var _useState17 = useState(null),
       _useState18 = _slicedToArray(_useState17, 2),
-      editSlot = _useState18[0],
-      setEditSlot = _useState18[1];
-    var _useState19 = useState(null),
+      selId = _useState18[0],
+      setSelId = _useState18[1];
+    var _useState19 = useState(false),
       _useState20 = _slicedToArray(_useState19, 2),
-      prodEdit = _useState20[0],
-      setProdEdit = _useState20[1]; // { plu } | { plu: null } = nowy
+      edit = _useState20[0],
+      setEdit = _useState20[1];
     var _useState21 = useState(null),
       _useState22 = _slicedToArray(_useState21, 2),
-      sheet = _useState22[0],
-      setSheet = _useState22[1];
+      editSlot = _useState22[0],
+      setEditSlot = _useState22[1];
     var _useState23 = useState(null),
       _useState24 = _slicedToArray(_useState23, 2),
-      toast = _useState24[0],
-      setToast = _useState24[1];
+      prodEdit = _useState24[0],
+      setProdEdit = _useState24[1]; // { plu } | { plu: null } = nowy
     var _useState25 = useState(null),
       _useState26 = _slicedToArray(_useState25, 2),
-      flashId = _useState26[0],
-      setFlashId = _useState26[1];
-    var _useState27 = useState(false),
+      sheet = _useState26[0],
+      setSheet = _useState26[1];
+    var _useState27 = useState(null),
       _useState28 = _slicedToArray(_useState27, 2),
-      scanFlash = _useState28[0],
-      setScanFlash = _useState28[1];
+      toast = _useState28[0],
+      setToast = _useState28[1];
+    var _useState29 = useState(null),
+      _useState30 = _slicedToArray(_useState29, 2),
+      flashId = _useState30[0],
+      setFlashId = _useState30[1];
+    var _useState31 = useState(false),
+      _useState32 = _slicedToArray(_useState31, 2),
+      scanFlash = _useState32[0],
+      setScanFlash = _useState32[1];
     var seq = useRef(0);
     var timers = useRef([]);
     var toastT = useRef(null);
@@ -453,6 +550,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       _ref5 = _slicedToArray(_ref4, 2),
       gc = _ref5[0],
       gr = _ref5[1];
+    // strony stolików (tryb gastro) są na końcu Paneli: siatka po 24 stoliki albo jedna strona na salę
+    var gN = gastroOn ? gView === 'plan' ? planN.rooms.length : Math.max(1, Math.ceil(gTables / 24)) : 0;
+    var pageAll = Math.min(page, pages.length + gN - 1);
+    var inGastro = gN > 0 && pageAll >= pages.length;
     var pageC = Math.min(page, pages.length - 1);
     var fpageC = Math.min(fpage, fpages.length - 1);
 
@@ -506,18 +607,30 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     };
     // Menu dostępne tylko przy zamkniętym paragonie
     var menuLockedMsg = 'Menu jest dostępne po zamknięciu paragonu';
+    var noSaleMsg = "".concat(cashier.role, " nie ma uprawnie\u0144 do sprzeda\u017Cy");
     var goTab = function goTab(t) {
       if (t === 'menu' && linesRef.current.length) {
         say(menuLockedMsg, 'err', 'lock');
         return;
       }
+      if (noSale && SALE_TABS.includes(t)) {
+        say(noSaleMsg, 'err', 'lock');
+        return;
+      }
+      if (t !== 'panele') setMoveMode(false);
       setTab(t);
       setEdit(false);
       setFOpen(false);
     };
     useEffect(function () {
-      if (tab === 'menu' && lines.length) setTab('panele');
+      if (tab === 'menu' && lines.length && !noSale) setTab('panele');
     }, [tab, lines.length]);
+    useEffect(function () {
+      if (noSale && SALE_TABS.includes(tab)) setTab('menu');
+    }, [noSale]);
+    useEffect(function () {
+      if (tab === 'gastro') setTab('panele');
+    }, [tab]);
     var clearBuf = function clearBuf() {
       return setBuf(BUF0);
     };
@@ -583,6 +696,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     };
     var ageRef = useRef(false); // wiek klienta potwierdzony na bieżącym paragonie
     var _doSell = function doSell(p, src, code) {
+      if (noSale) {
+        err(noSaleMsg);
+        return;
+      }
       if (p.active === false) {
         err("Towar \u201E".concat(p.name, "\u201D jest usuni\u0119ty"));
         return;
@@ -635,7 +752,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         err(prec >= 1 ? "\u201E".concat(p.name, "\u201D sprzedawany jest tylko w ca\u0142ych ilo\u015Bciach") : "\u201E".concat(p.name, "\u201D: dok\u0142adno\u015B\u0107 sprzeda\u017Cy ").concat(String(prec).replace('.', ','), " ").concat(p.unit));
         return;
       }
-      if (priceOv != null) {
+      if (priceOv != null && !bufRef.current.codeOv) {
         if (p.priceMode === 'Zamknięta') {
           err("Cena towaru \u201E".concat(p.name, "\u201D jest zamkni\u0119ta"));
           return;
@@ -688,6 +805,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         var _add4 = _slicedToArray(_add3, 1);
         L = _add4[0];
       }
+      var sp = p.sup && NP_DB.get(p.sup); // opłata SUP za opakowanie jednorazowe
+      if (sp) {
+        var _add5 = add(L, sp, Math.max(1, Math.round(prec >= 1 ? q : 1)), sp.price, false);
+        var _add6 = _slicedToArray(_add5, 1);
+        L = _add6[0];
+      }
       commit(L);
       flash(id);
       setSelId(null);
@@ -695,7 +818,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       setLastEvent({
         kind: fromScale ? 'waga' : src,
         code: code || null,
-        text: "".concat(sign < 0 ? 'Zwrot · ' : '').concat(p.name, " \xB7 ").concat(qTxt, " \xD7 ").concat(M(price)).concat(fromScale ? ' (waga)' : '').concat(pk ? ' + kaucja' : '')
+        text: "".concat(sign < 0 ? 'Zwrot · ' : '').concat(p.name, " \xB7 ").concat(qTxt, " \xD7 ").concat(M(price)).concat(fromScale ? ' (waga)' : '').concat(pk ? ' + kaucja' : '').concat(sp ? ' + SUP' : '')
       });
       clearBuf();
     };
@@ -733,7 +856,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     };
     var findCode = function findCode(c) {
       return NP_DB.all().find(function (x) {
-        return x.plu === c || x.ean && x.ean === c;
+        return x.plu === c || x.ean && x.ean === c || (x.codes || []).some(function (y) {
+          return y.code === c;
+        });
       });
     };
     var sellByCode = function sellByCode(c) {
@@ -750,6 +875,23 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           entry: ''
         });
         return;
+      }
+      // kod dodatkowy: własna cena za szt. i mnożnik ilości
+      var xc = p.plu !== c && p.ean !== c && (p.codes || []).find(function (y) {
+        return y.code === c;
+      });
+      if (xc && bufRef.current.mode !== 'check') {
+        var q0 = bufRef.current.qty ? bufRef.current.qty.v : 1;
+        setBuf(_objectSpread({
+          entry: '',
+          qty: {
+            v: q0 * (xc.mult || 1),
+            unit: 'szt'
+          }
+        }, xc.price > 0 && bufRef.current.priceOv == null ? {
+          priceOv: xc.price,
+          codeOv: true
+        } : {}));
       }
       sell(p, src, c);
     };
@@ -898,9 +1040,220 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }
     };
 
+    // ── gastro: stoliki i rachunki ──
+    var newBill = function newBill(table) {
+      var L = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
+      var no = ++parkNoRef.current;
+      setParkNo(no);
+      return {
+        id: NPF.uid(),
+        no: no,
+        table: table,
+        name: '',
+        guests: 0,
+        cashierId: cashier.id,
+        opened: Date.now(),
+        touched: Date.now(),
+        lines: L
+      };
+    };
+    var setCur = function setCur(id) {
+      curRef.current = id;
+      setCurBill(id);
+    };
+    var saveCur = function saveCur() {
+      // bieżący paragon → do jego rachunku (albo nowy rachunek bez stolika)
+      var L = linesRef.current,
+        cid = curRef.current;
+      if (cid) {
+        setBills(function (bs) {
+          return bs.map(function (b) {
+            return b.id === cid ? _objectSpread(_objectSpread({}, b), {}, {
+              lines: L.concat(b.rest || []),
+              rest: null,
+              touched: Date.now()
+            }) : b;
+          }).filter(function (b) {
+            return b.id !== cid || b.lines.length || b.name || b.guests;
+          });
+        });
+        return;
+      }
+      if (L.length) setBills(function (bs) {
+        return [].concat(_toConsumableArray(bs), [newBill(null, L)]);
+      });
+    };
+    var leaveCur = function leaveCur() {
+      commit([]);
+      setCur(null);
+      setSelId(null);
+      clearBuf();
+      setRcptDisc(null);
+      setNip('');
+      setInvoice(false);
+    };
+    var loadBill = function loadBill(b) {
+      commit((b.lines || []).concat(b.rest || []));
+      setBills(function (bs) {
+        return bs.map(function (x) {
+          return x.id === b.id ? _objectSpread(_objectSpread({}, x), {}, {
+            rest: null
+          }) : x;
+        });
+      });
+      setCur(b.id);
+      setSelId(null);
+      clearBuf();
+    };
+    var openTable = function openTable(n) {
+      var cid = curRef.current;
+      if (moveMode) {
+        var mv = moveMode;
+        if (billsRef.current.some(function (b) {
+          return b.table === n && b.id !== mv.id;
+        })) {
+          err("Stolik ".concat(n, " jest zaj\u0119ty"));
+          return;
+        }
+        setBills(function (bs) {
+          return bs.map(function (b) {
+            return b.id === mv.id ? _objectSpread(_objectSpread({}, b), {}, {
+              table: n,
+              touched: Date.now()
+            }) : b;
+          });
+        });
+        setMoveMode(false);
+        say("Rachunek przeniesiony na stolik ".concat(n), 'ok', 'check');
+        return;
+      }
+      var b = billsRef.current.find(function (x) {
+        return x.table === n;
+      });
+      if (b && b.id === cid) return;
+      if (!b && !cid && linesRef.current.length) {
+        var nb = newBill(n);
+        setBills(function (bs) {
+          return [].concat(_toConsumableArray(bs), [nb]);
+        });
+        setCur(nb.id);
+        say("Paragon przypisany do stolika ".concat(n), 'ok', 'check');
+        return;
+      }
+      saveCur();
+      if (b) {
+        loadBill(b);
+        setLastEvent({
+          kind: 'info',
+          text: "Stolik ".concat(n).concat(b.name ? ' · ' + b.name : '', " \xB7 otwarty rachunek")
+        });
+      } else {
+        leaveCur();
+        var _nb = newBill(n);
+        setBills(function (bs) {
+          return [].concat(_toConsumableArray(bs), [_nb]);
+        });
+        setCur(_nb.id);
+        setLastEvent({
+          kind: 'info',
+          text: "Stolik ".concat(n, " \xB7 nowy rachunek")
+        });
+      }
+    };
+    var openBill = function openBill(id) {
+      var b = billsRef.current.find(function (x) {
+        return x.id === id;
+      });
+      if (!b || b.id === curRef.current) return;
+      saveCur();
+      loadBill(b);
+      setLastEvent({
+        kind: 'info',
+        text: "".concat(b.table != null ? 'Stolik ' + b.table : 'Rachunek').concat(b.name ? ' · ' + b.name : '')
+      });
+    };
+    var goTables = function goTables() {
+      setTab('panele');
+      setEdit(false);
+      setFOpen(false);
+      if (!inGastro) setPage(pages.length);
+    };
+    var cancelMove = function cancelMove() {
+      return setMoveMode(false);
+    };
+    var cancelParked = function cancelParked(id) {
+      // anulowanie zaparkowanego paragonu → lista „Anulowane”
+      var b = billsRef.current.find(function (x) {
+        return x.id === id;
+      });
+      if (!b) return;
+      var L = b.id === curRef.current ? linesRef.current : (b.lines || []).concat(b.rest || []);
+      setBillsX(function (xs) {
+        return [_objectSpread(_objectSpread({}, b), {}, {
+          lines: L,
+          rest: null,
+          cancelled: Date.now(),
+          cancelledBy: cashier.id
+        })].concat(_toConsumableArray(xs)).slice(0, 200);
+      });
+      setBills(function (bs) {
+        return bs.filter(function (x) {
+          return x.id !== id;
+        });
+      });
+      if (b.id === curRef.current) leaveCur();
+    };
+    var dropCurBill = function dropCurBill() {
+      // po płatności: reszta podzielonego rachunku wraca na paragon (i okno podziału), inaczej rachunek znika
+      var cid = curRef.current;
+      if (!cid) return null;
+      var cb = billsRef.current.find(function (x) {
+        return x.id === cid;
+      });
+      if (cb && cb.rest && cb.rest.length) {
+        commit(cb.rest);
+        setBills(function (bs) {
+          return bs.map(function (x) {
+            return x.id === cid ? _objectSpread(_objectSpread({}, x), {}, {
+              rest: null,
+              lines: [],
+              touched: Date.now()
+            }) : x;
+          });
+        });
+        return cb.split || {
+          mode: 'items'
+        };
+      }
+      setBills(function (bs) {
+        return bs.filter(function (x) {
+          return x.id !== cid;
+        });
+      });
+      setCur(null);
+      return null;
+    };
+    var restoreSplit = function restoreSplit() {
+      var cid = curRef.current;
+      var cb = cid && billsRef.current.find(function (x) {
+        return x.id === cid;
+      });
+      if (!cb || !cb.rest || !cb.rest.length) return;
+      commit(linesRef.current.concat(cb.rest));
+      setBills(function (bs) {
+        return bs.map(function (x) {
+          return x.id === cid ? _objectSpread(_objectSpread({}, x), {}, {
+            rest: null,
+            split: null
+          }) : x;
+        });
+      });
+    };
+
     // ── płatność ──
     var openPay = function openPay() {
       var method = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'cash';
+      if (rcptOff) return;
       if (!linesRef.current.length) {
         err('Paragon jest pusty');
         return;
@@ -923,6 +1276,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       });
     };
     var quickPay = function quickPay(method) {
+      if (noSale) {
+        err(noSaleMsg);
+        return;
+      }
       if (!linesRef.current.length) {
         err('Paragon jest pusty');
         return;
@@ -991,6 +1348,16 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       });
       resetReceipt();
       close();
+      var again = dropCurBill();
+      if (again) later(function () {
+        return setSheet({
+          type: 'gsplit',
+          props: {
+            init: again
+          },
+          k: ++seq.current
+        });
+      }, 250);
       setLastEvent({
         kind: 'pay',
         text: "".concat(invoice ? 'Faktura' : 'Paragon', " ").concat(npPad4(no), " zamkni\u0119ty").concat(r.change > 0 ? " \xB7 reszta ".concat(M(r.change), " z\u0142") : '')
@@ -1103,6 +1470,15 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
                 var no = receiptNo;
                 close();
                 resetReceipt();
+                if (curRef.current) {
+                  var cid = curRef.current;
+                  setBills(function (bs) {
+                    return bs.filter(function (x) {
+                      return x.id !== cid;
+                    });
+                  });
+                  setCur(null);
+                }
                 setLastEvent({
                   kind: 'storno',
                   text: "Paragon ".concat(npPad4(no), " anulowany")
@@ -1352,6 +1728,117 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           clearBuf();
           onLock();
           return;
+        case 'klawiszC':
+          escKey();
+          return;
+        case 'gParkuj':
+          {
+            if (!lines.length && !curRef.current) {
+              err('Paragon jest pusty');
+              return;
+            }
+            var cb = curRef.current && billsRef.current.find(function (x) {
+              return x.id === curRef.current;
+            });
+            var no = cb ? cb.no : parkNoRef.current + 1;
+            saveCur();
+            leaveCur();
+            setMoveMode(false);
+            say(cb && cb.table != null ? "Rachunek od\u0142o\u017Cony na stolik ".concat(cb.table) : "Paragon zaparkowany \xB7 nr ".concat(no), 'ok', 'clock');
+            return;
+          }
+        case 'gLista':
+          setSheet({
+            type: 'park',
+            props: {},
+            k: ++seq.current
+          });
+          return;
+        case 'gNowy':
+          if (lines.length || curRef.current) {
+            saveCur();
+            leaveCur();
+          }
+          setMoveMode(false);
+          say('Nowy rachunek', 'info', 'plus');
+          return;
+        case 'gOpisz':
+          {
+            var cid = curRef.current;
+            if (!cid && !lines.length) {
+              err('Wybierz stolik lub rachunek');
+              return;
+            }
+            if (!cid) {
+              var nb = newBill(null);
+              setBills(function (bs) {
+                return [].concat(_toConsumableArray(bs), [nb]);
+              });
+              setCur(nb.id);
+              cid = nb.id;
+            }
+            var b = billsRef.current.find(function (x) {
+              return x.id === cid;
+            }) || {};
+            setSheet({
+              type: 'gdesc',
+              props: {
+                id: cid,
+                title: b.table != null ? "Stolik ".concat(b.table, " \xB7 opis") : 'Opis rachunku',
+                name: b.name,
+                guests: b.guests
+              },
+              k: ++seq.current
+            });
+            return;
+          }
+        case 'gPrzenies':
+          if (!curRef.current) {
+            err('Najpierw wybierz stolik lub rachunek');
+            return;
+          }
+          if (moveMode) {
+            setMoveMode(false);
+            return;
+          }
+          setMoveMode({
+            id: curRef.current
+          });
+          goTables();
+          say('Dotknij wolny stolik', 'info', 'log-out');
+          return;
+        case 'gPodziel':
+          if (!lines.length) {
+            err('Rachunek jest pusty');
+            return;
+          }
+          setSheet({
+            type: 'gsplit',
+            props: {},
+            k: ++seq.current
+          });
+          return;
+        case 'gKuchnia':
+          {
+            if (!lines.length) {
+              err('Rachunek jest pusty');
+              return;
+            }
+            var nw = lines.filter(function (l) {
+              return !l.sent;
+            }).length;
+            if (!nw) {
+              say('Wszystkie pozycje są już w kuchni', 'info', 'chef-hat');
+              return;
+            }
+            commit(lines.map(function (l) {
+              return _objectSpread(_objectSpread({}, l), {}, {
+                sent: true
+              });
+            }));
+            say("Wys\u0142ano do kuchni: ".concat(nw, " poz."), 'ok', 'chef-hat');
+            return;
+          }
         case 'wysuw':
           feed();
           return;
@@ -1398,7 +1885,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         say("".concat(it.label, " \u2014 ekran w przygotowaniu"), 'info', 'clock');
         return;
       }
-      if (menuOnly && ['editTiles', 'goF', 'goGoods', 'editF'].includes(a)) {
+      if (menuOnly && ['editTiles', 'goF', 'goGoods', 'editF', 'gPlanEdit'].includes(a)) {
         say('Dostępne w oknie sprzedaży — zaloguj się jako kasjer', 'info', 'lock');
         return;
       }
@@ -1420,6 +1907,18 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         case 'editTiles':
           setTab('panele');
           setEdit(true);
+          return;
+        case 'gPlanEdit':
+          if (!gastroOn) {
+            say('Włącz tryb gastro: Ustawienia › Gastronomia', 'info', 'utensils');
+            return;
+          }
+          if (gView !== 'plan') {
+            say('Ustaw „Widok stolików: Plan sali” w Ustawieniach › Gastronomia', 'info', 'utensils');
+            return;
+          }
+          goTables();
+          setPlanEdit(0);
           return;
         case 'layout':
           {
@@ -1637,14 +2136,25 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }
     };
 
-    // ── klawiatura kasy (ekranowa / fizyczna / PC) ──
-    useKeys(function (k) {
+    // Klawisz C (ESC): kasuje wpis / ilość / cenę / tryb, potem zaznaczenie, potem ostatni komunikat
+    var escKey = function escKey() {
       var _bufRef$current2 = bufRef.current,
         entry = _bufRef$current2.entry,
         qty = _bufRef$current2.qty,
         priceOv = _bufRef$current2.priceOv,
         fMode = _bufRef$current2.fMode,
         mode = _bufRef$current2.mode;
+      if (entry || qty || priceOv != null || fMode || mode) clearBuf();else if (selId) setSelId(null);else if (lastEvent) setLastEvent(null);
+    };
+    // ── klawiatura kasy (ekranowa / fizyczna / PC) ──
+    useKeys(function (k) {
+      if (rcptOff && k !== 'MENU') return true; // menu otwarte obok paragonu lub brak uprawnień do sprzedaży — paragon nieaktywny
+      var _bufRef$current3 = bufRef.current,
+        entry = _bufRef$current3.entry,
+        qty = _bufRef$current3.qty,
+        priceOv = _bufRef$current3.priceOv,
+        fMode = _bufRef$current3.fMode,
+        mode = _bufRef$current3.mode;
       if (fMode && /^[1-9]$/.test(k)) {
         var sl = fKey[F_IDX[k]];
         setBuf({
@@ -1671,7 +2181,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           });
           break;
         case 'ESC':
-          if (entry || qty || priceOv != null || fMode || mode) clearBuf();else if (selId) setSelId(null);else if (lastEvent) setLastEvent(null);
+          escKey();
           break;
         case 'X':
           if (entry) {
@@ -1756,6 +2266,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         var n = r.slice();
         n[w.s] = draft;
         return n;
+      });else if (w.src === 'grow') setGRow(function (r) {
+        var n = r.slice();
+        n[w.s] = draft;
+        return n;
       });else (w.src === 'fpages' ? setFPages : setPages)(function (ps) {
         return ps.map(function (pg, i) {
           return i !== w.p ? pg : _objectSpread(_objectSpread({}, pg), {}, {
@@ -1768,7 +2282,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       setEditSlot(null);
     };
     var slotOf = function slotOf(w) {
-      return (w.src === 'kbrow' ? kbRow[w.s] : w.src === 'fkey' ? fKey[w.s] : w.src === 'qpay' ? qPay[w.s] : (w.src === 'fpages' ? fpages : pages)[w.p].slots[w.s]) || null;
+      return (w.src === 'kbrow' ? kbRow[w.s] : w.src === 'grow' ? gRow[w.s] : w.src === 'fkey' ? fKey[w.s] : w.src === 'qpay' ? qPay[w.s] : (w.src === 'fpages' ? fpages : pages)[w.p].slots[w.s]) || null;
     };
     // Rozmiar kafelka tylko na Panelach i w Funkcjach (siatka); ograniczony krawędzią strony
     var maxSizeOf = function maxSizeOf(w) {
@@ -1778,7 +2292,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       } : null;
     };
     var whereLabel = function whereLabel(w) {
-      return w.src === 'kbrow' ? "Rz\u0105d nad klawiatur\u0105 \xB7 pole ".concat(w.s + 1) : w.src === 'fkey' ? "Klawisz F \xB7 pole ".concat(w.s + 1) : w.src === 'qpay' ? "Szybka p\u0142atno\u015B\u0107 \xB7 pole ".concat(w.s + 1) : "".concat(w.src === 'fpages' ? 'Funkcje' : 'Panele', " \xB7 strona ").concat(w.p + 1, " \xB7 pole ").concat(w.s + 1);
+      return w.src === 'kbrow' ? "Rz\u0105d nad klawiatur\u0105 \xB7 pole ".concat(w.s + 1) : w.src === 'grow' ? "Gastro \xB7 rz\u0105d klawiszy \xB7 pole ".concat(w.s + 1) : w.src === 'fkey' ? "Klawisz F \xB7 pole ".concat(w.s + 1) : w.src === 'qpay' ? "Szybka p\u0142atno\u015B\u0107 \xB7 pole ".concat(w.s + 1) : "".concat(w.src === 'fpages' ? 'Funkcje' : 'Panele', " \xB7 strona ").concat(w.p + 1, " \xB7 pole ").concat(w.s + 1);
     };
     var renderSheet = function renderSheet() {
       var type = sheet.type,
@@ -1805,9 +2319,155 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         initialMethod: props.method,
         initialTender: props.tender,
         auto: !!props.auto,
-        onCancel: close,
+        onCancel: function onCancel() {
+          close();
+          restoreSplit();
+        },
         onDone: payDone
       });
+      if (type === 'gname') return /*#__PURE__*/React.createElement(GastroTextSheet, {
+        key: k,
+        title: "Stolik ".concat(props.n, " \xB7 sta\u0142a nazwa"),
+        value: gNames[props.n] || '',
+        placeholder: "np. Okno, Lo\u017Ca",
+        sugg: ['Okno', 'Loża', 'Taras', 'Kominek', 'Ogród', 'VIP', 'Scena'],
+        onCancel: close,
+        onSave: function onSave(v) {
+          close();
+          setGNames(function (m) {
+            var n = _objectSpread({}, m);
+            if (v) n[props.n] = v;else delete n[props.n];
+            return n;
+          });
+          say(v ? "Stolik ".concat(props.n, ": \u201E").concat(v, "\u201D") : "Stolik ".concat(props.n, ": bez nazwy"), 'ok', 'check');
+        }
+      });
+      if (type === 'park') return /*#__PURE__*/React.createElement(ParkingSheet, {
+        key: k,
+        bills: bills,
+        cancelled: billsX,
+        curId: curBill,
+        curLines: lines,
+        cashier: cashier,
+        tableName: function tableName(n) {
+          return gView === 'plan' ? (NP_PLAN.allTables(planN).find(function (t) {
+            return t.n === n;
+          }) || {}).name || '' : gNames[n] || '';
+        },
+        onClose: close,
+        onOpen: function onOpen(id) {
+          close();
+          openBill(id);
+        },
+        onCancelBill: function onCancelBill(id) {
+          cancelParked(id);
+          say('Paragon zaparkowany anulowany', 'info', 'trash-2');
+        },
+        onDescribe: function onDescribe(id) {
+          var b = billsRef.current.find(function (x) {
+            return x.id === id;
+          }) || {};
+          setSheet({
+            type: 'gdesc',
+            props: {
+              id: id,
+              title: b.table != null ? "Stolik ".concat(b.table, " \xB7 opis") : "Paragon zaparkowany nr ".concat(b.no || '', " \xB7 opis"),
+              name: b.name,
+              guests: b.guests,
+              back: 'park'
+            },
+            k: ++seq.current
+          });
+        }
+      });
+      if (type === 'gdesc') return /*#__PURE__*/React.createElement(GastroDescSheet, {
+        key: k,
+        title: props.title,
+        name: props.name,
+        guests: props.guests,
+        onCancel: function onCancel() {
+          return props.back ? setSheet({
+            type: 'park',
+            props: {},
+            k: ++seq.current
+          }) : close();
+        },
+        onSave: function onSave(d) {
+          if (props.back) setSheet({
+            type: 'park',
+            props: {},
+            k: ++seq.current
+          });else close();
+          setBills(function (bs) {
+            return bs.map(function (b) {
+              return b.id === props.id ? _objectSpread(_objectSpread({}, b), d) : b;
+            });
+          });
+          say('Opis zapisany', 'ok', 'check');
+        }
+      });
+      if (type === 'gsplit') {
+        var cb = bills.find(function (x) {
+          return x.id === curBill;
+        });
+        var where = cb ? (cb.table != null ? 'Stolik ' + cb.table : 'Rachunek') + (cb.name ? ' · ' + cb.name : '') : '';
+        return /*#__PURE__*/React.createElement(GastroSplitSheet, {
+          key: k,
+          title: 'Podziel rachunek' + (where ? ' · ' + where : ''),
+          lines: lines,
+          init: props.init,
+          onCancel: close,
+          onPayItems: function onPayItems(a, b, plan) {
+            close();
+            var cid = curRef.current;
+            if (b.length) {
+              if (!cid) {
+                var nb = _objectSpread(_objectSpread({}, newBill(null)), {}, {
+                  rest: b,
+                  split: plan
+                });
+                setBills(function (bs) {
+                  return [].concat(_toConsumableArray(bs), [nb]);
+                });
+                setCur(nb.id);
+              } else setBills(function (bs) {
+                return bs.map(function (x) {
+                  return x.id === cid ? _objectSpread(_objectSpread({}, x), {}, {
+                    rest: b,
+                    split: plan
+                  }) : x;
+                });
+              });
+            }
+            commit(a);
+            later(function () {
+              return openPay('cash');
+            }, 30);
+          },
+          onMove: function onMove(a, b) {
+            close();
+            var nb = newBill(null, a);
+            nb.name = where ? where.replace(/^Rachunek · /, '') + ' · część' : 'Część rachunku';
+            setBills(function (bs) {
+              return [].concat(_toConsumableArray(bs), [nb]);
+            });
+            commit(b);
+            say('Zaznaczone pozycje przeniesione na nowy rachunek', 'ok', 'check');
+          },
+          onPayEqual: function onPayEqual(payments) {
+            close();
+            payDone({
+              method: payments[0].method,
+              payments: payments,
+              change: 0
+            });
+            {
+              var n = payments.length;
+              say("Rachunek podzielony po r\xF3wno \xB7 ".concat(n, " ").concat(n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'wpłaty' : 'wpłat'), 'ok', 'check');
+            }
+          }
+        });
+      }
       if (type === 'docadj') {
         return /*#__PURE__*/React.createElement(DocAdjSheet, {
           key: k,
@@ -1889,7 +2549,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var stornoS = useEvent(storno);
     var onLineActionS = useEvent(onLineAction);
     var sellListS = useEvent(function (p) {
-      return sell(p, 'list');
+      return noSale ? editProduct(p.plu) : sell(p, 'list');
     });
     var powerDialogS = useEvent(powerDialog);
     var menuActionS = useEvent(menuAction);
@@ -1931,6 +2591,67 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         s: i
       });
     }, []);
+    var editGRow = useCallback(function (i) {
+      return setEditSlot({
+        src: 'grow',
+        s: i
+      });
+    }, []);
+    var openTableS = useEvent(openTable);
+    var openBillS = useEvent(openBill);
+    var cancelMoveS = useEvent(cancelMove);
+    var renderGastro = function renderGastro(i, active) {
+      return /*#__PURE__*/React.createElement(GastroPage, {
+        active: active,
+        view: gView,
+        tables: gTables,
+        plan: planN,
+        names: gNames,
+        bills: bills,
+        curId: curBill,
+        curLines: lines,
+        row: gRow,
+        onTile: onTileS,
+        onEditRow: editGRow,
+        onTable: openTableS,
+        moveMode: moveMode,
+        onCancelMove: cancelMoveS,
+        canEdit: !!cashier.admin,
+        onNameTable: nameTableS,
+        gp: i
+      });
+    };
+    var gastroBarS = function gastroBarS(i) {
+      return gastroBar({
+        view: gView,
+        plan: planN,
+        gp: i,
+        count: gN,
+        moveMode: moveMode,
+        canEdit: !!cashier.admin,
+        onCancelMove: cancelMoveS,
+        onEditPlan: editPlanS
+      });
+    };
+    var editPlanS = useCallback(function (i) {
+      return setPlanEdit(i);
+    }, []);
+    var nameTableS = useCallback(function (n) {
+      return setSheet({
+        type: 'gname',
+        props: {
+          n: n
+        },
+        k: ++seq.current
+      });
+    }, []);
+    var busyTables = useMemo(function () {
+      return Object.fromEntries(bills.filter(function (b) {
+        return b.table != null;
+      }).map(function (b) {
+        return [b.table, true];
+      }));
+    }, [bills]);
     var uiAmount = useEvent(amount),
       uiDialog = useEvent(dialog),
       uiClose = useEvent(close),
@@ -1976,14 +2697,24 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     });
     var hasLines = lines.length > 0;
     var tabDisabled = useMemo(function () {
-      return {
+      return noSale ? {
+        klawiatura: true,
+        panele: true,
+        funkcjeF: true,
+        towary: true
+      } : {
         menu: hasLines
       };
-    }, [hasLines]);
+    }, [hasLines, noSale]);
+    var layoutCls = 'np-sale' + (tweaks.receipt === 'right' ? '' : ' rl') + (menuFullOn ? ' menu-full' : '') + (rcptOff && !menuFullOn ? ' rcpt-off' : '');
+    var cbill = curBill ? bills.find(function (b) {
+      return b.id === curBill;
+    }) : null;
+    var place = cbill ? [cbill.table != null ? 'Stolik ' + cbill.table : 'Rachunek' + (cbill.no ? ' nr ' + cbill.no : ''), cbill.name, cbill.guests ? cbill.guests + ' os.' : ''].filter(Boolean).join(' · ') : null;
     if (menuOnly) {
       var now = new Date();
       return /*#__PURE__*/React.createElement("div", {
-        className: 'np-sale' + (tweaks.receipt === 'right' ? '' : ' rl')
+        className: layoutCls
       }, /*#__PURE__*/React.createElement("div", {
         className: "np-left"
       }, /*#__PURE__*/React.createElement("div", {
@@ -2023,7 +2754,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }));
     }
     return /*#__PURE__*/React.createElement("div", {
-      className: 'np-sale' + (tweaks.receipt === 'right' ? '' : ' rl')
+      className: layoutCls
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-left"
     }, /*#__PURE__*/React.createElement("div", {
@@ -2040,14 +2771,17 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }), tab === 'panele' && /*#__PURE__*/React.createElement(PanelsView, {
       pages: pages,
       setPages: setPages,
-      page: pageC,
+      page: pageAll,
       setPage: setPage,
       cols: gc,
       rows: gr,
       edit: edit,
       setEdit: setEdit,
       onTile: onTileS,
-      onEditSlot: editPages
+      onEditSlot: editPages,
+      extra: gN,
+      renderExtra: renderGastro,
+      extraBar: gastroBarS
     }), tab === 'towary' && /*#__PURE__*/React.createElement(GoodsView, {
       onSell: sellListS,
       favs: favs,
@@ -2089,10 +2823,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         });
       }
     })), /*#__PURE__*/React.createElement(TabBar, {
-      tab: tab,
+      tab: noSale && tab === 'towary' ? 'menu' : tab,
       setTab: goTabS,
       disabled: tabDisabled
     })), /*#__PURE__*/React.createElement(ReceiptPane, {
+      place: place,
       qtyStyle: tweaks.qtyStyle || 'pill',
       cashier: cashier,
       receiptNo: receiptNo,
@@ -2123,6 +2858,19 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         onTile: onTileS,
         onEdit: editQPay
       })
+    }), planEdit != null && /*#__PURE__*/React.createElement(PlanEditor, {
+      plan: planN,
+      startRoom: planEdit,
+      busy: busyTables,
+      ui: menuUi,
+      onCancel: function onCancel() {
+        return setPlanEdit(null);
+      },
+      onSave: function onSave(p) {
+        setGPlan(p);
+        setPlanEdit(null);
+        say('Plan sali zapisany', 'ok', 'check');
+      }
     }), sheet && renderSheet(), prodSheet, editSlot && /*#__PURE__*/React.createElement(TileEditor, {
       key: JSON.stringify(editSlot),
       slot: slotOf(editSlot),

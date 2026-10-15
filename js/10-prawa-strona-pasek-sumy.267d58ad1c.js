@@ -35,6 +35,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   function SumCard(_ref) {
     var cashier = _ref.cashier,
       receiptNo = _ref.receiptNo,
+      place = _ref.place,
       count = _ref.count,
       total = _ref.total,
       subtotal = _ref.subtotal,
@@ -71,8 +72,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         background: cashier.color
       }
     }, ini), /*#__PURE__*/React.createElement("b", null, cashier.name)), /*#__PURE__*/React.createElement("span", {
-      className: "np-sum-no"
-    }, "Paragon ", pad4(receiptNo))), /*#__PURE__*/React.createElement("div", {
+      className: 'np-sum-no' + (place ? ' place' : '')
+    }, place || 'Paragon ' + pad4(receiptNo))), /*#__PURE__*/React.createElement("div", {
       className: "np-sum-top"
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-buffer"

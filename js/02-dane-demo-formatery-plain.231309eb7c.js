@@ -85,6 +85,8 @@
     [80, 'Kaucja — butelka PET', 0.5, 'Z', 'kaucje', 'szt', 'recycle'],
     [81, 'Kaucja — puszka', 0.5, 'Z', 'kaucje', 'szt', 'recycle'],
     [82, 'Kaucja — butelka szklana', 1.0, 'Z', 'kaucje', 'szt', 'recycle'],
+    [9001, 'Opłata SUP — kubek jednorazowy', 0.2, 'Z', 'kaucje', 'szt', 'recycle'],
+    [9002, 'Opłata SUP — pojemnik na żywność', 0.25, 'Z', 'kaucje', 'szt', 'recycle'],
   ];
   const PRODUCTS = RAW.map(([plu, name, price, vat, group, unit, icon]) => ({
     plu: String(plu), ean: ean13('5904811' + String(plu).padStart(5, '0')), name, price, vat, group, unit, icon,
@@ -99,7 +101,7 @@
   const PRECS = [['jm', 'zdefiniowana w jednostce miary'], ['1', '1 — tylko całe sztuki'], ['0.1', '0,1'], ['0.01', '0,01'], ['0.001', '0,001 — towar na wagę']];
   const withDefaults = (p) => Object.assign({
     priceH: '', priceN: '', priceD: '', type: p.group === 'kaucje' ? 'Opakowanie' : 'Towar', priceMode: 'Otwarta', pkwiu: '', gtu: '(brak)',
-    prec: 'jm', pack: null, packN: 1, desc: ['', '', '', '', ''], printers: { kasa: false, e1: false, e2: false, e3: false }, attrs: '', stock: 0,
+    prec: 'jm', pack: null, packN: 1, sup: null, codes: [], desc: ['', '', '', '', ''], printers: { kasa: false, e1: false, e2: false, e3: false }, attrs: '', stock: 0,
     excise: p.group === 'napoje' && /piwo|wino|wódka/i.test(p.name), weighed: p.unit === 'kg', mpp: false, active: true,
   }, p);
   try {
@@ -119,7 +121,7 @@
     ver: () => ver,
     precOf: (p) => (p.prec && p.prec !== 'jm' ? +p.prec : (UNIT_PREC[p.unit] || 1)),
     blank: () => withDefaults({ plu: '', ean: '', name: '', price: '', vat: 'A', group: GROUPS[0].id, unit: 'szt', icon: null }),
-    nextPlu: () => String(Math.max(0, ...PRODUCTS.map((p) => +p.plu || 0)) + 1),
+    nextPlu: () => String(Math.max(0, ...PRODUCTS.map((p) => +p.plu || 0).filter((n) => n < 9000)) + 1), // 9000+ = pozycje systemowe (SUP)
     genEan: (plu) => ean13('5904811' + String(plu || '0').padStart(5, '0').slice(-5)),
     groupIcon: (id) => { const g = GROUPS.find((x) => x.id === id); return g ? g.icon : null; },
     // piktogram towaru: własny (pict) → z asortymentu
@@ -171,6 +173,14 @@
     { id: 'blokada', f: 25, name: 'Blokada kasy', tile: 'Blokada\nkasy', icon: 'lock', color: 'blue', cat: 'Kasa' },
     { id: 'wysuw', f: 26, name: 'Wysuw papieru', tile: 'Wysuw\npapieru', icon: 'printer', color: 'blue', cat: 'Kasa' },
     { id: 'wyjscie', f: 27, name: 'ESC Wyjście', tile: 'ESC\nWyjście', icon: 'log-out', color: 'graphite', cat: 'Kasa' },
+    { id: 'klawiszC', f: 29, name: 'Klawisz C (kasuj)', tile: 'C\nkasuj', icon: 'eraser', color: 'graphite', cat: 'Kasa' },
+    { id: 'gPodziel', f: 30, name: 'Podziel rachunek', tile: 'Podziel', icon: 'split', color: 'orange', cat: 'Gastro' },
+    { id: 'gParkuj', f: 31, name: 'Parkuj paragon', tile: 'Parkuj', icon: 'clock', color: 'teal', cat: 'Paragon' },
+    { id: 'gPrzenies', f: 32, name: 'Przenieś na stolik', tile: 'Przenieś', icon: 'log-out', color: 'blue', cat: 'Gastro' },
+    { id: 'gOpisz', f: 33, name: 'Opisz stolik / rachunek', tile: 'Opisz', icon: 'pencil', color: 'graphite', cat: 'Gastro' },
+    { id: 'gNowy', f: 34, name: 'Nowy rachunek', tile: 'Nowy\nrachunek', icon: 'plus', color: 'green', cat: 'Gastro' },
+    { id: 'gLista', f: 36, name: 'Zaparkowane paragony', tile: 'Zaparko-\nwane', icon: 'clipboard-list', color: 'teal', cat: 'Paragon' },
+    { id: 'gKuchnia', f: 35, name: 'Wyślij do kuchni', tile: 'Do kuchni', icon: 'chef-hat', color: 'red', cat: 'Gastro' },
   ];
   const TILE_COLORS = ['gray', 'red', 'orange', 'green', 'blue', 'teal', 'graphite'];
 
@@ -200,6 +210,7 @@
   const DEFAULT_QPAY = [F('gotowka'), F('karta'), F('blik')];
   // Klawisz F → 3×3 (układ jak blok cyfr 7-8-9 / 4-5-6 / 1-2-3)
   const DEFAULT_FKEY = [F('storno'), F('rabatLista'), F('anuluj'), F('nip'), F('cena'), F('zwrot'), F('szuflada'), F('kopia'), F('kasjer')];
+  const DEFAULT_GROW = [F('gPodziel'), F('gParkuj'), F('gLista'), F('gPrzenies'), F('gOpisz'), F('gKuchnia')];
 
   // Menu — układ jak w kasie NEXT (NoviCloud / Administracja / Programowanie / Raporty)
   const MENU = [
@@ -242,6 +253,7 @@
       { label: 'Towary', icon: 'package', action: 'goods' },
       { label: 'Formaty kodów wagowych', icon: 'barcode', action: 'list:scalecodes' },
       { label: 'Usługi gastro', icon: 'utensils', action: 'list:gastro' },
+      { label: 'Plan sali i stoliki', icon: 'utensils', action: 'gPlanEdit' },
       { label: 'Klienci', icon: 'users', action: 'list:clients' },
       { label: 'Operatorzy', icon: 'user-cog', action: 'list:operators' },
       { label: 'Profile uprawnień', icon: 'shield-check', action: 'list:profiles' },
@@ -294,7 +306,8 @@
       { id: 'bonyReszta', label: 'Reszta z bonu', type: 'select', def: 'Nie wydawaj', options: ['Nie wydawaj', 'Gotówką', 'Nowym bonem'], desc: 'Co zrobić, gdy wartość bonu jest wyższa niż kwota paragonu.' },
     ] },
     { id: 'gastro', label: 'Gastronomia', icon: 'chef-hat', color: 'teal', desc: 'Konfiguracja parametrów gastronomicznych.', params: [
-      { id: 'gastroTryb', label: 'Tryb gastronomiczny', type: 'toggle', def: false, desc: 'Włącza obsługę stolików, rachunków i bonów kuchennych.' },
+      { id: 'gastroTryb', label: 'Tryb gastronomiczny', type: 'toggle', def: false, desc: 'Włącza obsługę stolików i rachunków: na dolnej belce pojawia się zakładka Gastro (Stoliki, Rachunki otwarte).' },
+      { id: 'gastroWidok', label: 'Widok stolików', type: 'select', def: 'Siatka', options: ['Siatka', 'Plan sali'], desc: 'Siatka – stoliki jako kafelki z numerami. Plan sali – graficzne odwzorowanie sali: stoliki z krzesłami, bar, strefy; układ zmienisz przyciskiem „Edytuj plan”.' },
       { id: 'gastroStoliki', label: 'Liczba stolików', type: 'num', def: 20, max: 3, desc: 'Liczba stolików dostępnych na planie sali.' },
       { id: 'gastroBony', label: 'Wydruk bonów na kuchnię', type: 'toggle', def: false, desc: 'Drukuje zamówienie na drukarce kuchennej po zatwierdzeniu.' },
       { id: 'gastroDrukarka', label: 'Drukarka kuchenna', type: 'select', def: 'Brak', options: ['Brak', 'Drukarka sieciowa 1', 'Drukarka sieciowa 2'], desc: 'Drukarka, na którą trafiają bony kuchenne.' },
@@ -344,10 +357,13 @@
 
   const CASHIERS = [
     // auth: 'pin' = hasło tylko z cyfr (klawiatura numeryczna), 'pass' = hasło alfanumeryczne (pełna klawiatura)
-    { id: 1, name: 'Anna Wójcik', role: 'Kierownik zmiany', admin: true, auth: 'pin', pin: '1234', card: '10010001', color: '#2E6B72' },
-    { id: 2, name: 'Tomasz Lewandowski', role: 'Kasjer', auth: 'pass', pass: 'kasa1', card: '10010002', color: '#F07A1A' },
-    { id: 3, name: 'Katarzyna Nowak', role: 'Kasjer', auth: 'pin', pin: '1234', card: '10010003', color: '#22BF6F' },
-    { id: 4, name: 'Piotr Zieliński', role: 'Kasjer · praktykant', auth: 'pass', pass: 'nowy2', card: '10010004', color: '#0A7CFF' },
+    // level: kasjer | nadzorca | manager | serwis — manager i serwisant nie mają dostępu do sprzedaży
+    { id: 1, name: 'Anna Wójcik', role: 'Nadzorca', level: 'nadzorca', admin: true, auth: 'pin', pin: '1234', card: '10010001', color: '#2E6B72' },
+    { id: 2, name: 'Tomasz Lewandowski', role: 'Kasjer', level: 'kasjer', auth: 'pass', pass: 'kasa1', card: '10010002', color: '#F07A1A' },
+    { id: 3, name: 'Katarzyna Nowak', role: 'Kasjer', level: 'kasjer', auth: 'pin', pin: '1234', card: '10010003', color: '#22BF6F' },
+    { id: 4, name: 'Piotr Zieliński', role: 'Kasjer · praktykant', level: 'kasjer', auth: 'pass', pass: 'nowy2', card: '10010004', color: '#0A7CFF' },
+    { id: 5, name: 'Marek Kowalski', role: 'Manager', level: 'manager', admin: true, auth: 'pin', pin: '1234', card: '10010005', color: '#8E5BD9' },
+    { id: 6, name: 'Serwis Novitus', role: 'Serwisant', level: 'serwis', admin: true, auth: 'pin', pin: '1234', card: '10010006', color: '#3A3B40' },
   ];
   const SHOP = { name: 'Sklep „Pod Lipami”', addr: 'ul. Lipowa 12, 00-950 Warszawa', kasa: 'Kasa nr 2', nip: 'NIP 525-000-11-09' };
 
@@ -370,6 +386,6 @@
   let _uid = Date.now() % 100000;
   const uid = () => 'l' + (++_uid).toString(36);
 
-  window.NP_DATA = { PRODUCT_TYPES, PRICE_MODES, GTU, UNITS, PRECS, PRODUCTS, GROUPS, FUNCS, TILE_COLORS, DEFAULT_PAGES, DEFAULT_FAVS, DEFAULT_FPAGES, DEFAULT_KBROW, DEFAULT_FKEY, DEFAULT_QPAY, MENU, SETTINGS, LISTS, CASHIERS, SHOP, VAT };
+  window.NP_DATA = { PRODUCT_TYPES, PRICE_MODES, GTU, UNITS, PRECS, PRODUCTS, GROUPS, FUNCS, TILE_COLORS, DEFAULT_PAGES, DEFAULT_FAVS, DEFAULT_FPAGES, DEFAULT_KBROW, DEFAULT_FKEY, DEFAULT_GROW, DEFAULT_QPAY, MENU, SETTINGS, LISTS, CASHIERS, SHOP, VAT };
   window.NPF = { round2, money, qty, parseNum, norm, dateLong, dateFull, time, nip, uid };
 })();

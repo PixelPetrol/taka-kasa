@@ -96,6 +96,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       span: span
     };
   }
+
+  // extra = strony stolików (tryb gastro) za zwykłymi stronami: ta sama karuzela, płynne przesuwanie; renderExtra(i) = treść, extraBar(i) = { name, act }
   function PanelsView(_ref2) {
     var pages = _ref2.pages,
       setPages = _ref2.setPages,
@@ -107,7 +109,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       setEdit = _ref2.setEdit,
       onTile = _ref2.onTile,
       onEditSlot = _ref2.onEditSlot,
-      showF = _ref2.showF;
+      showF = _ref2.showF,
+      _ref2$extra = _ref2.extra,
+      extra = _ref2$extra === void 0 ? 0 : _ref2$extra,
+      renderExtra = _ref2.renderExtra,
+      extraBar = _ref2.extraBar;
     var pv = useProductsVer();
     var carRef = useRef(null);
     var _useState = useState(0),
@@ -124,10 +130,14 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       setGhost = _useState6[1];
     var S = useRef({}).current;
     var n = pages.length;
+    var N = n + extra;
     var pageRef = useRef(page);
     pageRef.current = page;
+    var editRef = useRef(edit);
+    editRef.current = edit;
     var go = function go(p) {
-      return setPage(Math.max(0, Math.min(n - 1, p)));
+      var max = editRef.current ? n - 1 : N - 1;
+      setPage(Math.max(0, Math.min(max, p)));
     };
     useKeys(function (k) {
       if (k === 'LEFT') {
@@ -242,7 +252,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           var _g = geo(ev);
           var d = ddx / _g.sc;
           var p = pageRef.current;
-          if (p === 0 && d > 0 || p === n - 1 && d < 0) d *= 0.35;
+          if (p === 0 && d > 0 || p === N - 1 && d < 0) d *= 0.35;
           setDx(d);
         } else if (S.mode === 'tile') {
           var _g2 = geo(ev);
@@ -279,6 +289,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           if (d < -g.w * 0.16 || v < -0.55) go(pageRef.current + 1);else if (d > g.w * 0.16 || v > 0.55) go(pageRef.current - 1);
           setDx(0);
           setSwiping(false);
+          S.eat = true;
+          setTimeout(function () {
+            S.eat = false;
+          }, 80);
         } else if (S.mode === 'tile') {
           var over = slotAt(ev);
           if (over && (over.p !== at.p || over.s !== at.s)) swap(at, over);
@@ -314,7 +328,14 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-carousel",
       ref: carRef,
       onPointerDown: onDown,
-      onWheel: onWheel
+      onWheel: onWheel,
+      onClickCapture: function onClickCapture(e) {
+        if (S.eat) {
+          S.eat = false;
+          e.stopPropagation();
+          e.preventDefault();
+        }
+      }
     }, /*#__PURE__*/React.createElement("div", {
       className: 'np-track' + (swiping ? ' swiping' : ''),
       style: {
@@ -373,6 +394,16 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           }))));
         });
       }());
+    }), Array.from({
+      length: extra
+    }, function (_, i) {
+      return Math.abs(n + i - page) > 1 ? /*#__PURE__*/React.createElement("div", {
+        key: 'x' + i,
+        className: "np-page"
+      }) : /*#__PURE__*/React.createElement("div", {
+        key: 'x' + i,
+        className: "np-page np-xpage"
+      }, renderExtra(i, n + i === page));
     })), ghost && /*#__PURE__*/React.createElement("div", {
       className: "np-ghost",
       style: {
@@ -387,36 +418,50 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       pv: pv
     }))), /*#__PURE__*/React.createElement("div", {
       className: "np-pagebar"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "np-pagebar-name"
-    }, edit ? 'Przeciągnij lub dotknij kafelek' : ''), /*#__PURE__*/React.createElement("div", {
-      className: "np-dots"
-    }, pages.map(function (_, i) {
-      return /*#__PURE__*/React.createElement("button", {
-        key: i,
-        className: i === page ? 'on' : '',
+    }, function () {
+      var xb = page >= n && extraBar ? extraBar(page - n) : null;
+      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+        className: 'np-pagebar-name' + (xb && xb.warn ? ' warn' : '')
+      }, edit ? 'Przeciągnij lub dotknij kafelek' : xb ? xb.name : ''), /*#__PURE__*/React.createElement("div", {
+        className: "np-dots"
+      }, pages.map(function (_, i) {
+        return /*#__PURE__*/React.createElement("button", {
+          key: i,
+          className: i === page ? 'on' : '',
+          onClick: function onClick() {
+            return go(i);
+          },
+          "aria-label": 'Strona ' + (i + 1)
+        }, /*#__PURE__*/React.createElement("i", null));
+      }), !edit && Array.from({
+        length: extra
+      }, function (_, i) {
+        return /*#__PURE__*/React.createElement("button", {
+          key: 'g' + i,
+          className: 'g' + (n + i === page ? ' on' : ''),
+          onClick: function onClick() {
+            return go(n + i);
+          },
+          "aria-label": 'Stoliki ' + (i + 1)
+        }, /*#__PURE__*/React.createElement("i", null));
+      })), /*#__PURE__*/React.createElement("div", {
+        className: "np-pagebar-act"
+      }, xb ? xb.act : edit ? /*#__PURE__*/React.createElement("button", {
+        className: "np-pill-btn ink",
         onClick: function onClick() {
-          return go(i);
-        },
-        "aria-label": 'Strona ' + (i + 1)
-      }, /*#__PURE__*/React.createElement("i", null));
-    })), /*#__PURE__*/React.createElement("div", {
-      className: "np-pagebar-act"
-    }, edit ? /*#__PURE__*/React.createElement("button", {
-      className: "np-pill-btn ink",
-      onClick: function onClick() {
-        return setEdit(false);
-      }
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "check"
-    }), "Gotowe") : /*#__PURE__*/React.createElement("button", {
-      className: "np-pill-btn",
-      onClick: function onClick() {
-        return setEdit(true);
-      }
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "pencil"
-    }), "Edytuj"))));
+          return setEdit(false);
+        }
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: "check"
+      }), "Gotowe") : /*#__PURE__*/React.createElement("button", {
+        className: "np-pill-btn",
+        onClick: function onClick() {
+          return setEdit(true);
+        }
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: "pencil"
+      }), "Edytuj")));
+    }()));
   }
 
   // Rząd programowalnych kafelków nad klawiaturą: dotknięcie = akcja, przytrzymanie (lub puste pole) = programowanie

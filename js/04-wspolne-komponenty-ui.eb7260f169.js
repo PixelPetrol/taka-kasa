@@ -1,6 +1,12 @@
 "use strict";
 
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function _createForOfIteratorHelper(r, e) { var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (!t) { if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) { t && (r = t); var _n = 0, F = function F() {}; return { s: F, n: function n() { return _n >= r.length ? { done: !0 } : { done: !1, value: r[_n++] }; }, e: function e(r) { throw r; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var o, a = !0, u = !1; return { s: function s() { t = t.call(r); }, n: function n() { var r = t.next(); return a = r.done, r; }, e: function e(r) { u = !0, o = r; }, f: function f() { try { a || null == t["return"] || t["return"](); } finally { if (u) throw o; } } }; }
+function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
+function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
+function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
+function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
+function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
@@ -597,97 +603,280 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   }
 
   // Klawiatura ekranowa (wyszukiwarka) — przyciski nie zabierają fokusu z pola
-  var OSK_ROWS = ['1234567890', 'ąćęłńóśźż', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
-  function OSK(_ref9) {
-    var onKey = _ref9.onKey,
-      onHide = _ref9.onHide,
-      onEnter = _ref9.onEnter,
-      _ref9$enterLabel = _ref9.enterLabel,
-      enterLabel = _ref9$enterLabel === void 0 ? 'OK' : _ref9$enterLabel,
-      _ref9$extra = _ref9.extra,
-      extra = _ref9$extra === void 0 ? '' : _ref9$extra;
+  // Standardowy układ QWERTY: Shift (dotknij = jedna wielka litera, 2× = Caps Lock), ?123 = znaki specjalne,
+  // przytrzymanie litery = polskie znaki (a→ą, c→ć, e→ę, l→ł, n→ń, o→ó, s→ś, z→ż ź), przytrzymanie ⌫ = kasowanie ciągłe
+  var OSK_L = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+  var OSK_S = ['-/:;()&@"\'', '.,?!%*+=#_', '[]{}<>\\|~€'];
+  var OSK_ACC = {
+    a: 'ą',
+    c: 'ć',
+    e: 'ę',
+    l: 'ł',
+    n: 'ń',
+    o: 'ó',
+    s: 'ś',
+    z: 'żź',
+    x: 'ź'
+  };
+  var ShiftIco = function ShiftIco(_ref9) {
+    var lock = _ref9.lock;
+    return /*#__PURE__*/React.createElement("svg", {
+      viewBox: "0 0 24 24",
+      width: "24",
+      height: "24",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "1.8",
+      strokeLinejoin: "round"
+    }, /*#__PURE__*/React.createElement("path", {
+      d: "M9 15v-4H5l7-7 7 7h-4v4H9z",
+      fill: lock ? 'currentColor' : 'none'
+    }), lock && /*#__PURE__*/React.createElement("path", {
+      d: "M8.5 19.5h7",
+      strokeLinecap: "round"
+    }));
+  };
+  function OSK(_ref0) {
+    var onKey = _ref0.onKey,
+      onHide = _ref0.onHide,
+      onEnter = _ref0.onEnter,
+      _ref0$enterLabel = _ref0.enterLabel,
+      enterLabel = _ref0$enterLabel === void 0 ? 'OK' : _ref0$enterLabel,
+      _ref0$extra = _ref0.extra,
+      extra = _ref0$extra === void 0 ? '' : _ref0$extra;
+    var _useState1 = useState('off'),
+      _useState10 = _slicedToArray(_useState1, 2),
+      shift = _useState10[0],
+      setShift = _useState10[1]; // off | on | lock
+    var _useState11 = useState(false),
+      _useState12 = _slicedToArray(_useState11, 2),
+      sym = _useState12[0],
+      setSym = _useState12[1];
+    var _useState13 = useState(null),
+      _useState14 = _slicedToArray(_useState13, 2),
+      pop = _useState14[0],
+      setPopRaw = _useState14[1]; // { opts, sel, x, y, w }
+    var popRef = useRef(null);
+    var setPop = function setPop(p) {
+      popRef.current = p;
+      setPopRaw(p);
+    };
+    var shiftRef = useRef(shift);
+    shiftRef.current = shift;
+    var T = useRef({});
+    var h = useRef(null);
+    var stopT = function stopT() {
+      clearTimeout(T.current.lp);
+      clearTimeout(T.current.rd);
+      clearInterval(T.current.rep);
+    };
+    useEffect(function () {
+      return stopT;
+    }, []);
     var keep = function keep(e) {
       return e.preventDefault();
     };
-    var h = useRef(null);
     var fire = function fire(k) {
       return k === '__enter' ? onEnter && onEnter() : k === '__hide' ? onHide && onHide() : onKey(k);
     };
-    var pd = function pd(e, k) {
-      e.preventDefault();
-      if (e.button && e.button > 0) return;
-      h.current = k;
-      fire(k);
-    };
-    var cl = function cl(k) {
-      if (h.current === k) {
-        h.current = null;
+    var press = function press(e, d) {
+      var k = d.k,
+        t = d.t;
+      if (t === 'shift') {
+        var now = Date.now(),
+          s = shiftRef.current;
+        setShift(s === 'lock' ? 'off' : s === 'on' ? now - (T.current.ls || 0) < 320 ? 'lock' : 'off' : 'on');
+        T.current.ls = now;
+        return;
+      }
+      if (t === 'sym') {
+        setSym(function (v) {
+          return !v;
+        });
+        return;
+      }
+      if (t === 'char') {
+        var upper = shiftRef.current !== 'off' && !sym;
+        onKey(upper ? k.toUpperCase() : k);
+        if (shiftRef.current === 'on') setShift('off');
+        var acc = !sym && OSK_ACC[k];
+        if (acc) {
+          var b = e.currentTarget;
+          T.current.lp = setTimeout(function () {
+            onKey('BACK');
+            setPop({
+              opts: acc.split('').map(function (c) {
+                return upper ? c.toUpperCase() : c;
+              }),
+              sel: 0,
+              x: b.offsetLeft + b.offsetWidth / 2,
+              y: b.offsetTop,
+              w: b.offsetWidth
+            });
+          }, 420);
+        }
         return;
       }
       fire(k);
+      if (k === 'BACK') T.current.rd = setTimeout(function () {
+        T.current.rep = setInterval(function () {
+          return onKey('BACK');
+        }, 70);
+      }, 450);
     };
-    var K = function K(_ref0) {
-      var k = _ref0.k,
-        _ref0$cls = _ref0.cls,
-        cls = _ref0$cls === void 0 ? '' : _ref0$cls,
-        children = _ref0.children;
+    var pd = function pd(e, d) {
+      e.preventDefault();
+      if (e.button && e.button > 0) return;
+      h.current = d.k;
+      stopT();
+      press(e, d);
+    };
+    var pm = function pm(e) {
+      var p = popRef.current;
+      if (!p) return;
+      var el = document.elementFromPoint(e.clientX, e.clientY);
+      var a = el && el.closest && el.closest('[data-acc]');
+      if (a && +a.dataset.acc !== p.sel) setPop(_objectSpread(_objectSpread({}, p), {}, {
+        sel: +a.dataset.acc
+      }));
+    };
+    var pu = function pu() {
+      stopT();
+      var p = popRef.current;
+      if (p) {
+        onKey(p.opts[p.sel]);
+        setPop(null);
+      }
+    };
+    var cl = function cl(d) {
+      if (h.current === d.k) {
+        h.current = null;
+        return;
+      }
+      press({
+        currentTarget: null
+      }, _objectSpread(_objectSpread({}, d), {}, {
+        t: d.t === 'char' ? 'plain' : d.t
+      }));
+    };
+    var K = function K(d) {
       return /*#__PURE__*/React.createElement("button", {
-        key: k,
-        className: 'np-osk-k ' + cls,
+        key: d.id || d.k,
+        className: 'np-osk-k ' + (d.cls || ''),
         onPointerDown: function onPointerDown(e) {
-          return pd(e, k);
+          return pd(e, d);
         },
+        onPointerMove: pm,
+        onPointerUp: pu,
+        onPointerCancel: pu,
         onMouseDown: keep,
         onClick: function onClick() {
-          return cl(k);
+          return cl(d);
         }
-      }, children || k);
+      }, d.label || d.k, d.acc && /*#__PURE__*/React.createElement("i", {
+        className: "np-osk-acc"
+      }, d.acc));
     };
+    var caps = shift !== 'off';
+    var letter = function letter(c) {
+      return K({
+        k: c,
+        t: 'char',
+        label: caps ? c.toUpperCase() : c,
+        acc: OSK_ACC[c] ? caps ? OSK_ACC[c][0].toUpperCase() : OSK_ACC[c][0] : null
+      });
+    };
+    var symKey = function symKey(c) {
+      return K({
+        k: c,
+        t: 'char'
+      });
+    };
+    var back = K({
+      k: 'BACK',
+      cls: 'wide alt',
+      label: /*#__PURE__*/React.createElement(Icon, {
+        name: "backspace"
+      })
+    });
+    var ext = extra.split('').filter(function (c) {
+      return !',.'.includes(c);
+    });
+    var rows = sym ? OSK_S : OSK_L;
     return /*#__PURE__*/React.createElement("div", {
       className: "np-osk"
-    }, OSK_ROWS.map(function (r, i) {
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-osk-row"
+    }, '1234567890'.split('').map(function (c) {
+      return K({
+        k: c,
+        cls: 'alt'
+      });
+    }), ext.map(function (c) {
+      return K({
+        k: c,
+        cls: 'alt'
+      });
+    })), rows.map(function (r, i) {
       return /*#__PURE__*/React.createElement("div", {
-        key: i,
+        key: (sym ? 's' : 'l') + i,
         className: "np-osk-row"
-      }, r.split('').map(function (c) {
-        return K({
-          k: c,
-          cls: i === 1 || i === 0 ? 'alt' : ''
-        });
-      }), i === 0 && extra && extra.split('').map(function (c) {
-        return K({
-          k: c,
-          cls: 'alt'
-        });
-      }), i === 4 && K({
-        k: 'BACK',
-        cls: 'wide alt',
-        children: /*#__PURE__*/React.createElement(Icon, {
-          name: "backspace"
+      }, i === 2 && !sym && K({
+        k: '__shift',
+        t: 'shift',
+        cls: 'wide alt' + (shift !== 'off' ? ' on' : ''),
+        label: /*#__PURE__*/React.createElement(ShiftIco, {
+          lock: shift === 'lock'
         })
-      }));
+      }), r.split('').map(sym ? symKey : letter), i === 2 && back);
     }), /*#__PURE__*/React.createElement("div", {
       className: "np-osk-row"
-    }, onEnter ? K({
+    }, K({
+      k: '__sym',
+      t: 'sym',
+      cls: 'wide alt',
+      label: sym ? 'ABC' : '?123'
+    }), onEnter ? K({
       k: 'CLEAR',
       cls: 'wide alt',
-      children: 'Wyczyść'
+      label: 'Wyczyść'
     }) : K({
       k: '__hide',
       cls: 'wide alt',
-      children: 'Ukryj'
+      label: 'Ukryj'
+    }), K({
+      k: ','
     }), K({
       k: ' ',
       cls: 'space',
-      children: 'spacja'
+      label: 'spacja'
+    }), K({
+      k: '.'
     }), onEnter ? K({
       k: '__enter',
       cls: 'wide enter',
-      children: enterLabel
+      label: enterLabel
     }) : K({
       k: 'CLEAR',
       cls: 'wide alt',
-      children: 'Wyczyść'
+      label: 'Wyczyść'
+    })), pop && /*#__PURE__*/React.createElement("div", {
+      className: "np-osk-pop",
+      style: {
+        left: pop.x,
+        top: pop.y,
+        '--kw': pop.w + 'px'
+      }
+    }, pop.opts.map(function (o, i) {
+      return /*#__PURE__*/React.createElement("span", {
+        key: o,
+        "data-acc": i,
+        className: i === pop.sel ? 'on' : '',
+        onPointerUp: function onPointerUp() {
+          setPop(null);
+          onKey(o);
+        }
+      }, o);
     })));
   }
   function Avatar(_ref1) {
@@ -719,20 +908,20 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       children = _ref10.children,
       innerRef = _ref10.innerRef;
     var ref = useRef(null);
-    var _useState1 = useState({
+    var _useState15 = useState({
         can: false,
         top: 0,
         h: 0,
         atTop: true,
         atEnd: true
       }),
-      _useState10 = _slicedToArray(_useState1, 2),
-      st = _useState10[0],
-      setSt = _useState10[1];
-    var _useState11 = useState(false),
-      _useState12 = _slicedToArray(_useState11, 2),
-      active = _useState12[0],
-      setActive = _useState12[1];
+      _useState16 = _slicedToArray(_useState15, 2),
+      st = _useState16[0],
+      setSt = _useState16[1];
+    var _useState17 = useState(false),
+      _useState18 = _slicedToArray(_useState17, 2),
+      active = _useState18[0],
+      setActive = _useState18[1];
     var T = useRef({});
     var measure = function measure() {
       var el = ref.current;

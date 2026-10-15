@@ -327,10 +327,53 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     plu: 1,
     ean: 1
   };
+  // Kody dodatkowe: pola o id „xc:<nr>:code|price|mult”
+  var xcP = function xcP(id) {
+    var m = /^xc:(\d+):(\w+)$/.exec(id || '');
+    return m ? [+m[1], m[2]] : null;
+  };
+  var numKind = function numKind(id) {
+    var x = xcP(id);
+    if (x) return x[1] === 'price' ? 'money' : 'int';
+    return id === 'plu' || id === 'ean' ? 'int' : NUM[id] ? 'money' : null;
+  };
+  var lblOf = function lblOf(id) {
+    var x = xcP(id);
+    return x ? {
+      code: 'Kod dodatkowy ',
+      price: 'Cena kodu ',
+      mult: 'Mnożnik kodu '
+    }[x[1]] + (x[0] + 1) : LBL[id];
+  };
+  var readF = function readF(s, id) {
+    if (id.startsWith('desc')) return s.desc[+id.slice(4)] || '';
+    var x = xcP(id);
+    if (x) return (s.codes[x[0]] || {})[x[1]] || '';
+    return s[id] || '';
+  };
+  var writeF = function writeF(s, id, v) {
+    if (id.startsWith('desc')) {
+      var desc = _toConsumableArray(s.desc);
+      desc[+id.slice(4)] = v;
+      return _objectSpread(_objectSpread({}, s), {}, {
+        desc: desc
+      });
+    }
+    var x = xcP(id);
+    if (x) return _objectSpread(_objectSpread({}, s), {}, {
+      codes: s.codes.map(function (c, i) {
+        return i === x[0] ? _objectSpread(_objectSpread({}, c), {}, _defineProperty({}, x[1], v)) : c;
+      })
+    });
+    return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, v));
+  };
+  var isSup = function isSup(p) {
+    return /^Opłata SUP/i.test(p.name);
+  };
   var LBL = {
     name: 'Nazwa towaru',
     plu: 'Kod PLU',
-    ean: 'Kod kreskowy (EAN)',
+    ean: 'Kod kreskowy',
     price: 'Cena detaliczna',
     priceH: 'Cena hurtowa',
     priceN: 'Cena nocna',
@@ -366,31 +409,42 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         ['price', 'priceH', 'priceN', 'priceD', 'stock'].forEach(function (k) {
           b[k] = toStr(b[k]);
         });
+        b.codes = (b.codes || []).map(function (c) {
+          return {
+            code: c.code || '',
+            price: toStr(c.price),
+            mult: toStr(c.mult || 1)
+          };
+        });
         return b;
       }),
       _useState0 = _slicedToArray(_useState9, 2),
       f = _useState0[0],
       setF = _useState0[1];
-    var _useState1 = useState(!!isFav),
+    var _useState1 = useState(false),
       _useState10 = _slicedToArray(_useState1, 2),
-      fav = _useState10[0],
-      setFav = _useState10[1];
-    var _useState11 = useState(null),
+      supOpen = _useState10[0],
+      setSupOpen = _useState10[1];
+    var _useState11 = useState(!!isFav),
       _useState12 = _slicedToArray(_useState11, 2),
-      focus = _useState12[0],
-      setFocus = _useState12[1];
+      fav = _useState12[0],
+      setFav = _useState12[1];
     var _useState13 = useState(null),
       _useState14 = _slicedToArray(_useState13, 2),
-      pick = _useState14[0],
-      setPick = _useState14[1];
-    var _useState15 = useState(false),
+      focus = _useState14[0],
+      setFocus = _useState14[1];
+    var _useState15 = useState(null),
       _useState16 = _slicedToArray(_useState15, 2),
-      pictOpen = _useState16[0],
-      setPictOpen = _useState16[1];
-    var _useState17 = useState({}),
+      pick = _useState16[0],
+      setPick = _useState16[1];
+    var _useState17 = useState(false),
       _useState18 = _slicedToArray(_useState17, 2),
-      errs = _useState18[0],
-      setErrs = _useState18[1];
+      pictOpen = _useState18[0],
+      setPictOpen = _useState18[1];
+    var _useState19 = useState({}),
+      _useState20 = _slicedToArray(_useState19, 2),
+      errs = _useState20[0],
+      setErrs = _useState20[1];
     var bodyRef = useRef(null);
     var inputs = useRef({});
     var set = function set(k, v) {
@@ -402,20 +456,15 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       });
     };
     var getV = function getV(id) {
-      return (id.startsWith('desc') ? f.desc[+id.slice(4)] : f[id]) || '';
+      return readF(f, id);
     };
     var setV = function setV(id, v) {
-      if (NUM[id]) v = v.replace('.', ',').replace(id === 'plu' || id === 'ean' ? /[^0-9]/g : /[^0-9,]/g, '');
-      if (id.startsWith('desc')) {
-        var i = +id.slice(4);
-        setF(function (s) {
-          var desc = _toConsumableArray(s.desc);
-          desc[i] = v;
-          return _objectSpread(_objectSpread({}, s), {}, {
-            desc: desc
-          });
-        });
-      } else set(id, v);
+      setF(function (s) {
+        return writeF(s, id, clean(id, v));
+      });
+      if (errs[id]) setErrs(function (e) {
+        return _objectSpread(_objectSpread({}, e), {}, _defineProperty({}, id, null));
+      });
     };
     useKeys(function (k) {
       if (pictOpen) return false;
@@ -456,24 +505,17 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         return clearTimeout(t);
       };
     }, [focus]);
-    var clean = function clean(id, v) {
-      return NUM[id] ? v.replace('.', ',').replace(id === 'plu' || id === 'ean' ? /[^0-9]/g : /[^0-9,]/g, '') : v;
-    };
+    function clean(id, v) {
+      var k = numKind(id);
+      return k ? v.replace('.', ',').replace(k === 'int' ? /[^0-9]/g : /[^0-9,]/g, '') : v;
+    }
     var oskKey = function oskKey(k) {
       var id = focus;
       if (!id) return;
       setF(function (s) {
-        var isD = id.startsWith('desc');
-        var cur = (isD ? s.desc[+id.slice(4)] : s[id]) || '';
+        var cur = readF(s, id);
         var nv = clean(id, k === 'BACK' ? cur.slice(0, -1) : k === 'CLEAR' || k === 'C' ? '' : k === ',' && cur.includes(',') ? cur : (k === ',' && !cur ? '0' : cur) + k);
-        if (isD) {
-          var desc = _toConsumableArray(s.desc);
-          desc[+id.slice(4)] = nv;
-          return _objectSpread(_objectSpread({}, s), {}, {
-            desc: desc
-          });
-        }
-        return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, nv));
+        return writeF(s, id, nv);
       });
       setErrs(function (e) {
         return e[id] ? _objectSpread(_objectSpread({}, e), {}, _defineProperty({}, id, null)) : e;
@@ -488,20 +530,34 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       var e = {};
       var name = (f.name || '').trim();
       if (!name) e.name = 'Wpisz nazwę towaru';
-      if (!f.plu) e.plu = 'Wpisz kod PLU';else if (isNew && NP_DB.get(f.plu)) e.plu = "Kod PLU ".concat(f.plu, " jest ju\u017C u\u017Cywany");
+      var plu = isNew && (!f.plu || NP_DB.get(f.plu)) ? NP_DB.nextPlu() : f.plu; // PLU nadawany automatycznie
+      var usedBy = function usedBy(c) {
+        return NP_DB.all().find(function (x) {
+          return x.plu !== f.plu && (x.ean === c || (x.codes || []).some(function (y) {
+            return y.code === c;
+          }));
+        });
+      };
       if (f.ean) {
-        if (!(f.ean.length === 8 || f.ean.length === 13)) e.ean = 'Kod EAN ma 8 lub 13 cyfr';else {
-          var o = NP_DB.all().find(function (x) {
-            return x.ean === f.ean && x.plu !== f.plu;
-          });
+        if (!(f.ean.length === 8 || f.ean.length === 13)) e.ean = 'Kod kreskowy ma 8 lub 13 cyfr';else {
+          var o = usedBy(f.ean);
           if (o) e.ean = "Kod u\u017Cywany przez \u201E".concat(o.name, "\u201D");
         }
       }
+      f.codes.forEach(function (c, i) {
+        if (!c.code) return;
+        var o = usedBy(c.code);
+        if (c.code === f.ean || f.codes.some(function (y, j) {
+          return j < i && y.code === c.code;
+        })) e["xc:".concat(i, ":code")] = 'Kod powtarza się w tym towarze';else if (o) e["xc:".concat(i, ":code")] = "Kod u\u017Cywany przez \u201E".concat(o.name, "\u201D");
+      });
       var price = NPF.parseNum(f.price);
       if (!(price > 0) && f.priceMode !== 'Otwarta') e.price = 'Cena musi być większa od zera';
       if (Object.keys(e).length) {
         setErrs(e);
-        var first = ['name', 'plu', 'ean', 'price'].find(function (k) {
+        var first = ['name', 'ean', 'price'].concat(f.codes.map(function (_, i) {
+          return "xc:".concat(i, ":code");
+        })).find(function (k) {
           return e[k];
         });
         var el = first && inputs.current[first];
@@ -518,7 +574,18 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       var num = function num(v) {
         return v === '' ? '' : NPF.parseNum(v);
       };
+      var codes = f.codes.filter(function (c) {
+        return c.code;
+      }).map(function (c) {
+        return {
+          code: c.code,
+          price: c.price ? NPF.parseNum(c.price) : '',
+          mult: Math.max(1, parseInt(c.mult, 10) || 1)
+        };
+      });
       var out = _objectSpread(_objectSpread({}, f), {}, {
+        plu: plu,
+        codes: codes,
         name: name,
         price: price > 0 ? price : 0,
         priceH: num(f.priceH),
@@ -543,7 +610,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           inputs.current[id] = el;
         },
         value: val,
-        placeholder: ph || LBL[id] || '',
+        placeholder: ph || lblOf(id) || '',
         readOnly: !!ro,
         inputMode: 'none',
         onFocus: function onFocus() {
@@ -561,7 +628,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         className: 'np-pe-in area' + (focus === id ? ' focus' : ''),
         rows: 3
       })) : /*#__PURE__*/React.createElement("input", _extends({}, common, {
-        className: 'np-pe-in' + (big ? ' big' : '') + (NUM[id] ? ' num' : '') + (ro ? ' ro' : '') + (focus === id ? ' focus' : '') + (errs[id] ? ' err' : '')
+        className: 'np-pe-in' + (big ? ' big' : '') + (numKind(id) ? ' num' : '') + (ro ? ' ro' : '') + (focus === id ? ' focus' : '') + (errs[id] ? ' err' : '')
       }));
     };
     var field = function field(id, label) {
@@ -621,7 +688,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       pack: {
         label: 'Opakowanie zwrotne',
         list: [[null, '(brak opakowania)']].concat(NP_DB.all().filter(function (p) {
-          return p.group === 'kaucje' || p.type === 'Opakowanie';
+          return (p.group === 'kaucje' || p.type === 'Opakowanie') && !isSup(p);
         }).map(function (p) {
           return [p.plu, "".concat(p.name, " \xB7 ").concat(NPF.money(p.price), " z\u0142")];
         }))
@@ -669,7 +736,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-pe-head"
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-pe-title"
-    }, /*#__PURE__*/React.createElement("b", null, isNew ? 'Nowy towar' : 'Edycja towaru'), /*#__PURE__*/React.createElement("small", null, isNew ? 'Uzupełnij dane i zapisz' : "PLU ".concat(f.plu).concat(f.active === false ? ' · towar usunięty' : ''))), !isNew && (f.active === false ? /*#__PURE__*/React.createElement("button", {
+    }, /*#__PURE__*/React.createElement("b", null, isNew ? 'Nowy towar' : 'Edycja towaru'), /*#__PURE__*/React.createElement("small", null, isNew ? 'Uzupełnij dane i zapisz' : f.active === false ? 'Towar usunięty' : 'Zmień dane i zapisz')), !isNew && (f.active === false ? /*#__PURE__*/React.createElement("button", {
       className: "np-pill-btn",
       onClick: function onClick() {
         return set('active', true);
@@ -725,26 +792,77 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       name: "chevron-right"
     }))), field('name', null, {
       span: true
-    }), field('plu', null, {
-      ro: !isNew,
-      after: isNew && /*#__PURE__*/React.createElement("button", {
-        className: "np-pe-gen",
-        onClick: function onClick() {
-          return set('plu', NP_DB.nextPlu());
-        },
-        title: "Nast\u0119pny wolny",
-        "aria-label": "Nast\u0119pny wolny"
-      }, /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null))
     }), field('ean', null, {
+      span: true,
       after: /*#__PURE__*/React.createElement("button", {
         className: "np-pe-gen",
         onClick: function onClick() {
-          return set('ean', NP_DB.genEan(f.plu));
+          return set('ean', NP_DB.genEan(f.plu || NP_DB.nextPlu()));
         },
         title: "Wygeneruj kod",
         "aria-label": "Wygeneruj kod"
       }, /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null))
-    })), /*#__PURE__*/React.createElement("div", {
+    }), f.codes.length > 0 && /*#__PURE__*/React.createElement("div", {
+      className: "np-pe-f span"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "np-pe-l"
+    }, "Kody dodatkowe", /*#__PURE__*/React.createElement("em", null, "cena za 1 szt. (puste = cena towaru) \xB7 mno\u017Cnik = ilo\u015B\u0107 sprzedawana jednym kodem")), /*#__PURE__*/React.createElement("div", {
+      className: "np-pe-xcs"
+    }, f.codes.map(function (c, i) {
+      return /*#__PURE__*/React.createElement("div", {
+        className: "np-pe-xc",
+        key: i
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "np-pe-xc-n"
+      }, i + 1), input("xc:".concat(i, ":code"), {
+        ph: 'Kod kreskowy'
+      }), /*#__PURE__*/React.createElement("span", {
+        className: "np-pe-xc-f"
+      }, input("xc:".concat(i, ":price"), {
+        ph: 'Cena'
+      }), /*#__PURE__*/React.createElement("em", null, "z\u0142")), /*#__PURE__*/React.createElement("span", {
+        className: "np-pe-xc-f"
+      }, /*#__PURE__*/React.createElement("em", null, "\xD7"), input("xc:".concat(i, ":mult"), {
+        ph: '1'
+      })), /*#__PURE__*/React.createElement("button", {
+        className: "np-pe-xc-x",
+        onClick: function onClick() {
+          hideOsk();
+          setF(function (s) {
+            return _objectSpread(_objectSpread({}, s), {}, {
+              codes: s.codes.filter(function (_, j) {
+                return j !== i;
+              })
+            });
+          });
+          setErrs({});
+        },
+        "aria-label": "Usu\u0144 kod"
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: "trash-2"
+      })), errs["xc:".concat(i, ":code")] && /*#__PURE__*/React.createElement("span", {
+        className: "np-pe-err"
+      }, errs["xc:".concat(i, ":code")]));
+    }))), /*#__PURE__*/React.createElement("button", {
+      className: "np-pe-addcode",
+      onClick: function onClick() {
+        setF(function (s) {
+          return _objectSpread(_objectSpread({}, s), {}, {
+            codes: [].concat(_toConsumableArray(s.codes), [{
+              code: '',
+              price: '',
+              mult: '1'
+            }])
+          });
+        });
+        setTimeout(function () {
+          var el = inputs.current["xc:".concat(f.codes.length, ":code")];
+          if (el) el.focus();
+        }, 30);
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "plus"
+    }), "Dodaj kod dodatkowy")), /*#__PURE__*/React.createElement("div", {
       className: "np-pe-card"
     }, field('price', null, {
       big: true,
@@ -762,7 +880,21 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-pe-col"
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-pe-card"
-    }, select('pack', 'span'), f.pack && /*#__PURE__*/React.createElement("div", {
+    }, select('pack', 'span'), /*#__PURE__*/React.createElement("div", {
+      className: "np-pe-f span"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "np-pe-l"
+    }, "Opakowania SUP i DRS"), /*#__PURE__*/React.createElement("button", {
+      className: "np-pe-sel np-pe-supdrs",
+      onClick: function onClick() {
+        hideOsk();
+        setSupOpen(true);
+      }
+    }, /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement(Icon, {
+      name: "recycle"
+    }), [f.pack && 'DRS: ' + ((NP_DB.get(f.pack) || {}).name || '').replace(/^Kaucja — /, ''), f.sup && 'SUP: ' + ((NP_DB.get(f.sup) || {}).name || '').replace(/^Opłata SUP — /, '')].filter(Boolean).join(' · ') || 'Wybierz kaucję DRS lub opłatę SUP'), /*#__PURE__*/React.createElement(Icon, {
+      name: "chevron-right"
+    }))), f.pack && /*#__PURE__*/React.createElement("div", {
       className: "np-pe-f span"
     }, /*#__PURE__*/React.createElement("span", {
       className: "np-pe-l"
@@ -839,13 +971,13 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }, "Atrybuty"), input('attrs', {
       area: true,
       ph: 'Wpisz kolejne atrybuty w osobnych liniach'
-    })))))), focus && (NUM[focus] ? /*#__PURE__*/React.createElement("div", {
+    })))))), focus && (numKind(focus) ? /*#__PURE__*/React.createElement("div", {
       className: "np-pe-osk num"
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-pe-numl"
-    }, /*#__PURE__*/React.createElement("b", null, LBL[focus]), /*#__PURE__*/React.createElement("span", null, getV(focus) || '—', ['price', 'priceH', 'priceN', 'priceD'].includes(focus) ? ' zł' : focus === 'stock' ? ' ' + f.unit : '')), /*#__PURE__*/React.createElement(NumPad, {
+    }, /*#__PURE__*/React.createElement("b", null, lblOf(focus)), /*#__PURE__*/React.createElement("span", null, getV(focus) || '—', ['price', 'priceH', 'priceN', 'priceD'].includes(focus) || /:price$/.test(focus) ? ' zł' : focus === 'stock' ? ' ' + f.unit : '')), /*#__PURE__*/React.createElement(NumPad, {
       onKey: oskKey,
-      keys: focus === 'plu' || focus === 'ean' ? PAD_INT : PAD_MONEY,
+      keys: numKind(focus) === 'int' ? PAD_INT : PAD_MONEY,
       className: "on-gray"
     }), /*#__PURE__*/React.createElement("button", {
       className: "np-btn green",
@@ -864,7 +996,65 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }, "Anuluj"), /*#__PURE__*/React.createElement("button", {
       className: "np-btn green",
       onClick: save
-    }, isNew ? 'Dodaj towar' : 'Zapisz zmiany')), pictOpen && /*#__PURE__*/React.createElement(PictogramPicker, {
+    }, isNew ? 'Dodaj towar' : 'Zapisz zmiany')), supOpen && /*#__PURE__*/React.createElement("div", {
+      className: "np-pe-pick",
+      onPointerDown: function onPointerDown(e) {
+        if (e.target === e.currentTarget) setSupOpen(false);
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-pe-pickbox np-supdrs"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-pe-pickhead"
+    }, /*#__PURE__*/React.createElement("b", null, "Opakowania SUP i DRS"), /*#__PURE__*/React.createElement("button", {
+      className: "np-round-btn",
+      onClick: function onClick() {
+        return setSupOpen(false);
+      },
+      "aria-label": "Zamknij"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "x"
+    }))), /*#__PURE__*/React.createElement(ScrollArea, {
+      className: "np-supdrs-body",
+      more: false
+    }, [['pack', 'DRS · kaucja za opakowanie zwrotne', 'Doliczana do paragonu, zwracana przy oddaniu opakowania', function (p) {
+      return !isSup(p);
+    }], ['sup', 'SUP · opłata za opakowanie jednorazowe', 'Opłata za kubek lub pojemnik z tworzywa', isSup]].map(function (_ref7) {
+      var _ref8 = _slicedToArray(_ref7, 4),
+        k = _ref8[0],
+        title = _ref8[1],
+        sub = _ref8[2],
+        flt = _ref8[3];
+      return /*#__PURE__*/React.createElement("div", {
+        key: k,
+        className: "np-supdrs-sec"
+      }, /*#__PURE__*/React.createElement("div", {
+        className: "np-supdrs-h"
+      }, /*#__PURE__*/React.createElement("b", null, title), /*#__PURE__*/React.createElement("small", null, sub)), /*#__PURE__*/React.createElement("div", {
+        className: "np-choices"
+      }, [[null, k === 'pack' ? '(brak kaucji)' : '(brak opłaty)']].concat(NP_DB.all().filter(function (p) {
+        return (p.group === 'kaucje' || p.type === 'Opakowanie') && p.active !== false && flt(p);
+      }).map(function (p) {
+        return [p.plu, "".concat(p.name, " \xB7 ").concat(NPF.money(p.price), " z\u0142")];
+      })).map(function (_ref9) {
+        var _ref0 = _slicedToArray(_ref9, 2),
+          v = _ref0[0],
+          l = _ref0[1];
+        return /*#__PURE__*/React.createElement("button", {
+          key: String(v),
+          className: f[k] === v ? 'on' : '',
+          onClick: function onClick() {
+            return set(k, v);
+          }
+        }, /*#__PURE__*/React.createElement("span", null, l), f[k] === v && /*#__PURE__*/React.createElement(Icon, {
+          name: "check"
+        }));
+      })));
+    })), /*#__PURE__*/React.createElement("button", {
+      className: "np-btn green",
+      onClick: function onClick() {
+        return setSupOpen(false);
+      }
+    }, "Gotowe"))), pictOpen && /*#__PURE__*/React.createElement(PictogramPicker, {
       title: "Piktogram towaru",
       value: f.pict || null,
       noneLabel: "Bez piktogramu",
@@ -895,10 +1085,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }))), /*#__PURE__*/React.createElement(ScrollArea, {
       className: "np-choices",
       more: false
-    }, OPTS[pick].list.map(function (_ref7) {
-      var _ref8 = _slicedToArray(_ref7, 2),
-        v = _ref8[0],
-        l = _ref8[1];
+    }, OPTS[pick].list.map(function (_ref1) {
+      var _ref10 = _slicedToArray(_ref1, 2),
+        v = _ref10[0],
+        l = _ref10[1];
       return /*#__PURE__*/React.createElement("button", {
         key: String(v),
         className: f[pick] === v ? 'on' : '',
