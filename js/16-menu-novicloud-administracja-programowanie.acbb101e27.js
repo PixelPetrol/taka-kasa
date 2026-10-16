@@ -26,14 +26,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       right = _ref.right;
     return /*#__PURE__*/React.createElement("div", {
       className: "np-subhead"
-    }, /*#__PURE__*/React.createElement("button", {
-      className: "np-pill-btn",
-      onClick: onBack
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "chevron-left"
-    }), backLabel), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", {
       className: "np-subhead-t"
-    }, /*#__PURE__*/React.createElement("b", null, title), sub && /*#__PURE__*/React.createElement("small", null, sub)), right);
+    }, /*#__PURE__*/React.createElement("b", null, title), sub && /*#__PURE__*/React.createElement("small", null, sub)), right, /*#__PURE__*/React.createElement(MenuHomeBtn, {
+      onClick: onBack
+    }));
   }
 
   // ── Ustawienia (Administracja › Ustawienia) ──
@@ -141,7 +138,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       onClick: onBack
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "chevron-left"
-    }), /*#__PURE__*/React.createElement("span", null, "Menu")), SETTINGS.map(function (s) {
+    }), /*#__PURE__*/React.createElement("span", null, "Cofnij")), SETTINGS.map(function (s) {
       return /*#__PURE__*/React.createElement("button", {
         key: s.id,
         className: 'np-side-item' + (s.id === c.id ? ' on' : ''),
@@ -159,8 +156,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-menu-title"
     }, c.label), /*#__PURE__*/React.createElement(ScrollArea, {
       key: c.id,
-      className: "np-set-list",
-      more: false
+      className: "np-set-list"
     }, c.params.map(function (p) {
       var v = get(p);
       return /*#__PURE__*/React.createElement("div", {
@@ -336,12 +332,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-sub np-prog np-swipe"
     }, sw), swInd, /*#__PURE__*/React.createElement("div", {
       className: "np-subhead"
-    }, /*#__PURE__*/React.createElement("button", {
-      className: "np-pill-btn",
-      onClick: onBack
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "chevron-left"
-    }), "Menu"), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", {
       className: "np-subhead-t"
     }, /*#__PURE__*/React.createElement("b", null, "Asortymenty"), /*#__PURE__*/React.createElement("small", null, GROUPS.filter(function (g) {
       return g.active !== false;
@@ -375,7 +366,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "plus"
-    }), "Nowy asortyment")), moving ? /*#__PURE__*/React.createElement("div", {
+    }), "Nowy asortyment"), /*#__PURE__*/React.createElement(MenuHomeBtn, {
+      onClick: onBack
+    })), moving ? /*#__PURE__*/React.createElement("div", {
       className: "np-grp-movebar"
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "move"
@@ -1338,68 +1331,55 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }
       onAction(it);
     };
-    if (sub && sub.type === 'about') return /*#__PURE__*/React.createElement(AboutView, {
-      onBack: function onBack() {
-        return setSub(null);
-      },
-      ui: ui
-    });
-    if (sub && sub.type === 'settings') return /*#__PURE__*/React.createElement(SettingsView, {
-      onBack: function onBack() {
-        return setSub(null);
-      },
-      ui: ui,
-      onAction: onAction
-    });
-    if (sub && sub.type === 'list' && sub.id === 'groups') return /*#__PURE__*/React.createElement(GroupsView, {
-      onBack: function onBack() {
-        return setSub(null);
-      },
-      ui: ui
-    });
-    if (sub && sub.type === 'prog') {
-      var V = PROG_VIEWS[sub.id];
-      return /*#__PURE__*/React.createElement(V, {
-        onBack: function onBack() {
-          return setSub(null);
-        },
+    var toRoot = function toRoot() {
+      return setSub(null);
+    };
+    var subEl = null;
+    if (sub) {
+      if (sub.type === 'about') subEl = /*#__PURE__*/React.createElement(AboutView, {
+        onBack: toRoot,
         ui: ui
-      });
-    }
-    if (sub && sub.type === 'rpt') {
-      var _V = REPORT_VIEWS[sub.id];
-      return /*#__PURE__*/React.createElement(_V, {
-        key: sub.id,
-        onBack: function onBack() {
-          return setSub(null);
-        },
+      });else if (sub.type === 'settings') subEl = /*#__PURE__*/React.createElement(SettingsView, {
+        onBack: toRoot,
+        ui: ui,
+        onAction: onAction
+      });else if (sub.type === 'list' && sub.id === 'groups') subEl = /*#__PURE__*/React.createElement(GroupsView, {
+        onBack: toRoot,
         ui: ui
-      });
+      });else if (sub.type === 'prog') {
+        var V = PROG_VIEWS[sub.id];
+        subEl = /*#__PURE__*/React.createElement(V, {
+          onBack: toRoot,
+          ui: ui
+        });
+      } else if (sub.type === 'rpt') {
+        var _V = REPORT_VIEWS[sub.id];
+        subEl = /*#__PURE__*/React.createElement(_V, {
+          key: sub.id,
+          onBack: toRoot,
+          ui: ui
+        });
+      } else if (sub.type === 'list') subEl = /*#__PURE__*/React.createElement(ListView, {
+        id: sub.id,
+        onBack: toRoot,
+        ui: ui
+      });else if (sub.type === 'goods') subEl = /*#__PURE__*/React.createElement("div", _extends({
+        className: "np-sub np-swipe"
+      }, swG), swGInd, /*#__PURE__*/React.createElement(SubHead, {
+        title: "Towary",
+        sub: "Programowanie \xB7 dotknij towar, aby go edytowa\u0107",
+        onBack: toRoot
+      }), /*#__PURE__*/React.createElement("div", {
+        className: "np-sub-body"
+      }, /*#__PURE__*/React.createElement(GoodsView, {
+        manage: true,
+        ui: ui,
+        onEdit: ui.editProduct,
+        favs: ui.getFavs()
+      })));
     }
+    if (subEl) return subEl;
     var Form = form && (form.startsWith('rpt:') ? REPORT_FORMS[form.slice(4)] : PROG_FORMS[form]);
-    if (sub && sub.type === 'list') return /*#__PURE__*/React.createElement(ListView, {
-      id: sub.id,
-      onBack: function onBack() {
-        return setSub(null);
-      },
-      ui: ui
-    });
-    if (sub && sub.type === 'goods') return /*#__PURE__*/React.createElement("div", _extends({
-      className: "np-sub np-swipe"
-    }, swG), swGInd, /*#__PURE__*/React.createElement(SubHead, {
-      title: "Towary",
-      sub: "Programowanie \xB7 dotknij towar, aby go edytowa\u0107",
-      onBack: function onBack() {
-        return setSub(null);
-      }
-    }), /*#__PURE__*/React.createElement("div", {
-      className: "np-sub-body"
-    }, /*#__PURE__*/React.createElement(GoodsView, {
-      manage: true,
-      ui: ui,
-      onEdit: ui.editProduct,
-      favs: ui.getFavs()
-    })));
     return /*#__PURE__*/React.createElement("div", {
       className: "np-menu"
     }, /*#__PURE__*/React.createElement("div", {

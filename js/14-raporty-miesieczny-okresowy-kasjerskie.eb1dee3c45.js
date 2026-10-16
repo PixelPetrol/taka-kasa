@@ -2133,12 +2133,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-sub np-prog np-swipe"
     }, sw), swInd, /*#__PURE__*/React.createElement("div", {
       className: "np-subhead"
-    }, /*#__PURE__*/React.createElement("button", {
-      className: "np-pill-btn",
-      onClick: onBack
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "chevron-left"
-    }), "Menu"), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", {
       className: "np-subhead-t"
     }, /*#__PURE__*/React.createElement("b", null, "Pami\u0119\u0107 chroniona"), /*#__PURE__*/React.createElement("small", null, tab === 'last' ? 'Ostatni zapisany dokument' : 'Informacje o pamięci chronionej')), /*#__PURE__*/React.createElement("div", {
       className: "np-seg np-prog-tabs np-rp-memtabs"
@@ -2153,7 +2148,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           return setTab(k);
         }
       }, l);
-    }))), tab === 'last' && last && /*#__PURE__*/React.createElement("div", {
+    })), /*#__PURE__*/React.createElement(MenuHomeBtn, {
+      onClick: onBack
+    })), tab === 'last' && last && /*#__PURE__*/React.createElement("div", {
       className: "np-rp-last"
     }, /*#__PURE__*/React.createElement(ScrollArea, {
       className: "np-rp-doc-b",

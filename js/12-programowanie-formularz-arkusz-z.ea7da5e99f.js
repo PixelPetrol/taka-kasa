@@ -572,24 +572,35 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }))))));
   }
 
+  // Przycisk „Cofnij” (powrót do głównego ekranu Menu) — zawsze po prawej stronie nagłówka, jak w Ustawieniach
+  function MenuHomeBtn(_ref1) {
+    var onClick = _ref1.onClick;
+    return /*#__PURE__*/React.createElement("button", {
+      className: "np-pill-btn np-mhome",
+      onClick: onClick
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "chevron-left"
+    }), "Cofnij");
+  }
+
   /* Tabela: cols [{label, w ('1fr'|'120px'), align, get(row) → node}], zakładki Aktywne/Nieaktywne (tabs), przycisk dodawania */
-  function ProgTable(_ref1) {
-    var title = _ref1.title,
-      sub = _ref1.sub,
-      onBack = _ref1.onBack,
-      rows = _ref1.rows,
-      cols = _ref1.cols,
-      onRow = _ref1.onRow,
-      addLabel = _ref1.addLabel,
-      onAdd = _ref1.onAdd,
-      tabs = _ref1.tabs,
-      tab = _ref1.tab,
-      setTab = _ref1.setTab,
-      top = _ref1.top,
-      _ref1$empty = _ref1.empty,
-      empty = _ref1$empty === void 0 ? 'Brak pozycji' : _ref1$empty,
-      bottom = _ref1.bottom,
-      right = _ref1.right;
+  function ProgTable(_ref10) {
+    var title = _ref10.title,
+      sub = _ref10.sub,
+      onBack = _ref10.onBack,
+      rows = _ref10.rows,
+      cols = _ref10.cols,
+      onRow = _ref10.onRow,
+      addLabel = _ref10.addLabel,
+      onAdd = _ref10.onAdd,
+      tabs = _ref10.tabs,
+      tab = _ref10.tab,
+      setTab = _ref10.setTab,
+      top = _ref10.top,
+      _ref10$empty = _ref10.empty,
+      empty = _ref10$empty === void 0 ? 'Brak pozycji' : _ref10$empty,
+      bottom = _ref10.bottom,
+      right = _ref10.right;
     var tpl = cols.map(function (c) {
       return c.w || 'minmax(0,1fr)';
     }).join(' ') + ' 18px';
@@ -601,19 +612,14 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-sub np-prog np-swipe"
     }, sw), swInd, /*#__PURE__*/React.createElement("div", {
       className: "np-subhead"
-    }, /*#__PURE__*/React.createElement("button", {
-      className: "np-pill-btn",
-      onClick: onBack
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "chevron-left"
-    }), "Menu"), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", {
       className: "np-subhead-t"
     }, /*#__PURE__*/React.createElement("b", null, title), sub && /*#__PURE__*/React.createElement("small", null, sub)), tabs && /*#__PURE__*/React.createElement("div", {
       className: "np-seg np-prog-tabs"
-    }, tabs.map(function (_ref10) {
-      var _ref11 = _slicedToArray(_ref10, 2),
-        k = _ref11[0],
-        l = _ref11[1];
+    }, tabs.map(function (_ref11) {
+      var _ref12 = _slicedToArray(_ref11, 2),
+        k = _ref12[0],
+        l = _ref12[1];
       return /*#__PURE__*/React.createElement("button", {
         key: k,
         className: tab === k ? 'on' : '',
@@ -626,7 +632,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       onClick: onAdd
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "plus"
-    }), addLabel || 'Dodaj')), top, /*#__PURE__*/React.createElement("div", {
+    }), addLabel || 'Dodaj'), /*#__PURE__*/React.createElement(MenuHomeBtn, {
+      onClick: onBack
+    })), top, /*#__PURE__*/React.createElement("div", {
       className: "np-tbl"
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-tbl-h",
@@ -664,6 +672,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }))), bottom);
   }
   Object.assign(window, {
+    MenuHomeBtn: MenuHomeBtn,
     FormSheet: FormSheet,
     ProgTable: ProgTable,
     useProg: useProg,

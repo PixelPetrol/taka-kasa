@@ -1597,6 +1597,9 @@ body.np-bare{background:var(--np-bg)}
 .np-pe-img-btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .np-pe-img-btns .np-pill-btn{height:40px}
 .np-pe-img-btns small{width:100%;font-size:calc(12.5px * var(--np-ts,1));color:var(--np-ink-3)}
+
+/* Menu: przycisk „Cofnij” zawsze po prawej (nagłówki, Ustawienia) */
+.np-mhome,.np-mhome .np-ico{color:var(--np-blue)}.np-mhome{font-weight:600}
 </style>
 <style>/* KASA NEXT PRO — motyw ciemny. Klasa np-dark na <html> (Tweaks › Motyw albo Menu › Ustawienia › Parametry ogólne › Motyw).
    W nextpro.css kolory zależne od motywu mają postać var(--npd-…, kolor jasny) — tu są ich wartości ciemne. */
@@ -1775,7 +1778,7 @@ html.np-dark body.np-bare{background:var(--np-bg)}
 .np-pay-more-grid .np-method{height:84px}
 /* Cofnięcie gestem (przesunięcie w prawo) */
 .np-swipe{touch-action:pan-y}
-.np-swipe:not(.np-sub){position:relative}
+.np-swipe:not(.np-sub):not(.np-menu){position:relative}
 .np-swipe-ind{position:absolute;left:0;top:50%;z-index:30;width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:var(--np-surface);box-shadow:var(--np-shadow-2);color:var(--np-ink);opacity:0;transform:translate(-64px,-50%);pointer-events:none}
 .np-swipe-ind .np-ico{width:26px;height:26px}
 .np-swipe-ind.go{background:var(--np-ink);color:var(--np-on-ink)}
@@ -2046,11 +2049,11 @@ html.tk-lekko.np-dark .np-fsheet-bg{background:rgba(11,12,14,.92)} /* ciemny mot
 <script src="js/09-panele-programowalnych-kafelkow-6.620006dc86.js"></script>
 <script src="js/10-karta-towaru-nowy-edycja.6a210ea375.js"></script>
 <script src="js/11-widoki-lewej-strefy-klawiatura.13846d6783.js"></script>
-<script src="js/12-programowanie-formularz-arkusz-z.26dfb5f34e.js"></script>
+<script src="js/12-programowanie-formularz-arkusz-z.ea7da5e99f.js"></script>
 <script src="js/13-programowanie-dane-sklepu-stopka.04ee8e581e.js"></script>
-<script src="js/14-raporty-miesieczny-okresowy-kasjerskie.f31cf8b054.js"></script>
+<script src="js/14-raporty-miesieczny-okresowy-kasjerskie.eb1dee3c45.js"></script>
 <script src="js/15-novicloud-okno-komunikacji-log.33fa79e138.js"></script>
-<script src="js/16-menu-novicloud-administracja-programowanie.efffe4ffa8.js"></script>
+<script src="js/16-menu-novicloud-administracja-programowanie.acbb101e27.js"></script>
 <script src="js/17-prawa-strona-pasek-sumy.6c3d15cb2a.js"></script>
 <script src="js/18-platnosc-razem-z-platnoscia.3ede026c34.js"></script>
 <script src="js/19-plan-sali-model-sale.6a91a2248d.js"></script>
