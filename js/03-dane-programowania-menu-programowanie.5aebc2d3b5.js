@@ -1,4 +1,4 @@
-/* TAKA KASA — dane programowania (Menu › Programowanie): domyślne wartości + magazyn NP_PROG */
+/* KASA NEXT PRO — dane programowania (Menu › Programowanie): domyślne wartości + magazyn NP_PROG */
 (() => {
   const PAY_KINDS = ['Gotówka', 'Karta płatnicza', 'Karta kredytowa', 'BLIK', 'Bon', 'Przelew', 'Czek', 'Inna płatność'];
   // Kategoria dla statystyk i zachowania: cash (szybkie kwoty), card/blik (terminal), bon, other

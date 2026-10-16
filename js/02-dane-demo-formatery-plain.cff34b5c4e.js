@@ -1,9 +1,9 @@
-/* TAKA KASA — dane demo + formatery (plain JS) */
+/* KASA NEXT PRO — dane demo + formatery (plain JS) */
 (function () {
-  // Marka: domyślnie TAKA KASA; w paczkach można podmienić przez <meta name="np-brand" content="TAKA|KASA">
+  // Marka: domyślnie NEXT PRO; w paczkach można podmienić przez <meta name="np-brand" content="TAKA|KASA">
   const bm = document.querySelector('meta[name="np-brand"]');
   const [ba, bb] = bm ? bm.content.split('|') : ['NEXT', 'PRO'];
-  window.NP_BRAND = { a: ba, b: bb, full: bm ? ba + ' ' + bb : 'TAKA KASA' };
+  window.NP_BRAND = { a: ba, b: bb, full: bm ? ba + ' ' + bb : 'KASA NEXT PRO' };
   if (bm) {
     document.title = window.NP_BRAND.full;
     const pl = document.querySelector('.np-preload .np-logo');

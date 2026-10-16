@@ -1,4 +1,4 @@
-/* TAKA KASA — dane demonstracyjne raportów (paragony, faktury, zmiany kasjerów, raporty dobowe, pamięć chroniona) */
+/* KASA NEXT PRO — dane demonstracyjne raportów (paragony, faktury, zmiany kasjerów, raporty dobowe, pamięć chroniona) */
 (() => {
   const DAY = 864e5;
   const iso = (d) => { const x = new Date(d); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
