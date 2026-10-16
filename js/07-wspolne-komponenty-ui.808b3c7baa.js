@@ -267,6 +267,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   var EXTRA_ICONS = {
     menu: S('<path d="M4 7h16M4 12h16M4 17h16"/>'),
     'chevron-down': S('<path d="m6 9 6 6 6-6"/>'),
+    image: S('<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>'),
+    move: S('<path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/>'),
+    'corner-down-right': S('<path d="m15 10 5 5-5 5"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/>'),
+    'circle-minus': S('<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/>'),
+    'circle-plus': S('<circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/>'),
     'chevron-up': S('<path d="m18 15-6-6-6 6"/>'),
     headset: S('<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/><path d="M21 19a3 3 0 0 1-3 3h-4"/>'),
     cloud: S('<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>'),
@@ -331,7 +336,20 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     return /*#__PURE__*/React.createElement("div", {
       className: "np-status"
     }, /*#__PURE__*/React.createElement("div", {
-      className: "np-logo"
+      className: "np-logo",
+      onPointerDown: function onPointerDown(e) {
+        var el = e.currentTarget;
+        clearTimeout(el.__lp);
+        el.__lp = setTimeout(function () {
+          if (document.querySelector('.np-login-card')) window.dispatchEvent(new Event('np-svc-code'));
+        }, 900);
+      },
+      onPointerUp: function onPointerUp(e) {
+        return clearTimeout(e.currentTarget.__lp);
+      },
+      onPointerLeave: function onPointerLeave(e) {
+        return clearTimeout(e.currentTarget.__lp);
+      }
     }, NP_BRAND.a, /*#__PURE__*/React.createElement("b", null, NP_BRAND.b)), /*#__PURE__*/React.createElement("div", {
       className: "np-status-date"
     }, /*#__PURE__*/React.createElement("span", null, NPF.dateLong(now)), NPF.time(now)), /*#__PURE__*/React.createElement("div", {

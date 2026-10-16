@@ -16,44 +16,45 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     useState = _React.useState,
     useEffect = _React.useEffect,
     useRef = _React.useRef;
-  var METHODS = [{
-    id: 'cash',
-    label: 'Gotówka',
-    icon: 'banknote'
-  }, {
-    id: 'card',
-    label: 'Karta',
-    icon: 'credit-card'
-  }, {
-    id: 'blik',
-    label: 'BLIK',
-    icon: 'smartphone'
-  }, {
-    id: 'bon',
-    label: 'Bon',
-    icon: 'gift'
-  }];
-  var METHOD_NAME = {
-    cash: 'Gotówka',
-    card: 'Karta płatnicza',
-    blik: 'BLIK',
-    bon: 'Bon',
-    split: 'Płatność dzielona'
+
+  // Formy płatności z Menu › Programowanie › Formy płatności (aktywne, w kolejności z listy)
+  var payForms = function payForms() {
+    var a = NP_PROG.payForms();
+    return a.length ? a : NP_PROG.get('payments').slice(0, 1);
   };
-  var SHORT = {
-    cash: 'Gotówka',
-    card: 'Karta',
-    blik: 'BLIK',
-    bon: 'Bon'
+  var formOf = function formOf(id) {
+    return NP_PROG.get('payments').find(function (p) {
+      return p.id === id;
+    }) || {
+      id: id,
+      name: id,
+      kind: 'Inna płatność',
+      icon: 'wallet',
+      reszta: false
+    };
   };
-  var ICON = {
-    cash: 'banknote',
-    card: 'credit-card',
-    blik: 'smartphone',
-    bon: 'gift'
+  // Szybka płatność ('cash' | 'card' | 'blik') → pierwsza aktywna forma danego rodzaju
+  var formFor = function formFor(m) {
+    var fs = payForms();
+    return (fs.find(function (p) {
+      return p.id === m;
+    }) || fs.find(function (p) {
+      return NP_PROG.bucket(p.kind) === m;
+    }) || fs[0]).id;
   };
-  var isTerminal = function isTerminal(m) {
-    return m === 'card' || m === 'blik';
+  var bucketOf = function bucketOf(id) {
+    return NP_PROG.bucket(formOf(id).kind);
+  };
+  var isTerminal = function isTerminal(id) {
+    var b = bucketOf(id);
+    return b === 'card' || b === 'blik';
+  };
+  var tilesMax = function tilesMax() {
+    try {
+      return +((JSON.parse(localStorage.getItem('nextpro.settings') || '{}') || {}).payTiles || 8);
+    } catch (e) {
+      return 8;
+    }
   };
   function quickAmounts(total) {
     var up = function up(s) {
@@ -94,26 +95,34 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
       auto = _ref$auto === void 0 ? false : _ref$auto,
       onCancel = _ref.onCancel,
       onDone = _ref.onDone;
-    var _useState = useState(initialMethod),
+    var _useState = useState(function () {
+        return formFor(initialMethod);
+      }),
       _useState2 = _slicedToArray(_useState, 2),
       method = _useState2[0],
       setMethod = _useState2[1];
-    var _useState3 = useState(initialMethod === 'cash' ? initialTender : ''),
+    var _useState3 = useState(function () {
+        return bucketOf(formFor(initialMethod)) === 'cash' ? initialTender : '';
+      }),
       _useState4 = _slicedToArray(_useState3, 2),
       tender = _useState4[0],
       setTender = _useState4[1];
-    var _useState5 = useState([]),
+    var _useState5 = useState(false),
       _useState6 = _slicedToArray(_useState5, 2),
-      pays = _useState6[0],
-      setPays = _useState6[1]; // częściowe płatności [{method, amount}]
-    var _useState7 = useState('input'),
+      more = _useState6[0],
+      setMore = _useState6[1];
+    var _useState7 = useState([]),
       _useState8 = _slicedToArray(_useState7, 2),
-      phase = _useState8[0],
-      setPhase = _useState8[1]; // input | part | terminal | printing | done
-    var _useState9 = useState(null),
+      pays = _useState8[0],
+      setPays = _useState8[1]; // częściowe płatności [{method, amount}]
+    var _useState9 = useState('input'),
       _useState0 = _slicedToArray(_useState9, 2),
-      partMethod = _useState0[0],
-      setPartMethod = _useState0[1];
+      phase = _useState0[0],
+      setPhase = _useState0[1]; // input | part | terminal | printing | done
+    var _useState1 = useState(null),
+      _useState10 = _slicedToArray(_useState1, 2),
+      partMethod = _useState10[0],
+      setPartMethod = _useState10[1];
     var result = useRef(null);
     var timers = useRef([]);
     useEffect(function () {
@@ -128,11 +137,13 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
       return s + p.amount;
     }, 0));
     var remaining = NPF.round2(total - paid);
-    var isCash = method === 'cash';
+    var form = formOf(method);
+    var isCash = NP_PROG.bucket(form.kind) === 'cash';
+    var canChange = !!form.reszta;
     var tv = tender ? NPF.parseNum(tender) : remaining;
-    var amount = NPF.round2(isCash ? Math.min(tv, remaining) : tv);
-    var change = isCash ? Math.max(0, NPF.round2(tv - remaining)) : 0;
-    var over = !isCash && tv > remaining + 0.0001;
+    var amount = NPF.round2(canChange ? Math.min(tv, remaining) : tv);
+    var change = canChange ? Math.max(0, NPF.round2(tv - remaining)) : 0;
+    var over = !canChange && tv > remaining + 0.0001;
     var zero = !(tv > 0);
     var partial = !zero && !over && tv + 0.0001 < remaining;
     var invalid = zero || over;
@@ -147,7 +158,10 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     var confirm = function confirm() {
       if (phase !== 'input' || invalid) return;
       var p = {
-        method: method,
+        method: NP_PROG.bucket(form.kind),
+        form: method,
+        name: form.name,
+        icon: form.icon,
         amount: amount
       };
       if (partial) {
@@ -167,9 +181,9 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
       }
       var all = [].concat(_toConsumableArray(pays), [p]);
       result.current = {
-        method: all.length > 1 ? 'split' : method,
+        method: all.length > 1 ? 'split' : p.method,
         payments: all,
-        tendered: isCash ? tv : amount,
+        tendered: canChange ? tv : amount,
         change: change
       };
       var summary = paySummaryOn();
@@ -196,6 +210,10 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
       if (auto) confirm();
     }, []);
     useKeys(function (k) {
+      if (more) {
+        if (k === 'ESC') setMore(false);
+        return true;
+      }
       if (phase === 'done') {
         if (k === 'OK' || k === 'ESC' || k === 'RAZEM') finish();
         return true;
@@ -210,7 +228,7 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
       var r = result.current;
       var tm = phase === 'part' ? partMethod : method;
       var amt = phase === 'part' ? amount : r ? r.payments[r.payments.length - 1].amount : total;
-      var title = phase === 'part' || phase === 'terminal' ? tm === 'blik' ? 'Oczekiwanie na kod BLIK' : 'Zbliż lub włóż kartę' : 'Drukowanie paragonu…';
+      var title = phase === 'part' || phase === 'terminal' ? bucketOf(tm) === 'blik' ? 'Oczekiwanie na kod BLIK' : 'Zbliż lub włóż kartę' : 'Drukowanie paragonu…';
       var desc = phase === 'part' || phase === 'terminal' ? "Terminal p\u0142atniczy \xB7 ".concat(NPF.money(amt), " z\u0142").concat(phase === 'part' ? ' · płatność częściowa' : '') : 'Nie odrywaj paragonu do końca wydruku';
       return /*#__PURE__*/React.createElement(Sheet, {
         className: "np-pay np-pay-status"
@@ -251,8 +269,8 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
         }, /*#__PURE__*/React.createElement("span", {
           className: "np-done-pay-ico"
         }, /*#__PURE__*/React.createElement(Icon, {
-          name: ICON[x.method]
-        })), /*#__PURE__*/React.createElement("span", null, METHOD_NAME[x.method]), /*#__PURE__*/React.createElement("b", null, NPF.money(x.method === 'cash' && _r.change > 0 && i === _r.payments.length - 1 ? x.amount + _r.change : x.amount), " z\u0142"));
+          name: x.icon || formOf(x.form || x.method).icon
+        })), /*#__PURE__*/React.createElement("span", null, x.name || formOf(x.form || x.method).name), /*#__PURE__*/React.createElement("b", null, NPF.money(_r.change > 0 && i === _r.payments.length - 1 ? x.amount + _r.change : x.amount), " z\u0142"));
       }))), _r.change > 0 && /*#__PURE__*/React.createElement("div", {
         className: "np-done-change"
       }, /*#__PURE__*/React.createElement("span", null, "Reszta do wydania"), /*#__PURE__*/React.createElement("b", null, NPF.money(_r.change), /*#__PURE__*/React.createElement("small", null, "z\u0142"))), /*#__PURE__*/React.createElement("div", {
@@ -264,7 +282,22 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
         onClick: finish
       }, _short ? 'OK' : 'Nowy paragon')));
     }
-    var primary = invalid ? 'Zatwierdź płatność' : partial ? "Zap\u0142a\u0107 cz\u0119\u015B\u0107 \xB7 ".concat(NPF.money(amount), " z\u0142") : isTerminal(method) ? 'Wyślij do terminala' : method === 'bon' ? 'Zatwierdź bon' : 'Zatwierdź płatność';
+    var primary = invalid ? 'Zatwierdź płatność' : partial ? "Zap\u0142a\u0107 cz\u0119\u015B\u0107 \xB7 ".concat(NPF.money(amount), " z\u0142") : isTerminal(method) ? 'Wyślij do terminala' : NP_PROG.bucket(form.kind) === 'bon' ? 'Zatwierdź bon' : 'Zatwierdź płatność';
+    // Kafelki form płatności: tyle, ile mieści ustawienie (4 / 8 / 12); nadmiar pod „Więcej”
+    var forms = payForms();
+    var cap = Math.max(4, tilesMax());
+    var overflow = forms.length > cap;
+    var shown = overflow ? forms.slice(0, cap - 1) : forms;
+    var hiddenSel = overflow && !shown.some(function (m) {
+      return m.id === method;
+    }) ? form : null;
+    var nTiles = shown.length + (overflow ? 1 : 0);
+    var rows = Math.ceil(nTiles / 4);
+    var pickForm = function pickForm(id) {
+      setMethod(id);
+      setTender('');
+      setMore(false);
+    };
     return /*#__PURE__*/React.createElement(Sheet, {
       className: "np-pay",
       onClose: pays.length ? null : onCancel
@@ -289,8 +322,8 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
         key: i,
         className: "np-pay-chip"
       }, /*#__PURE__*/React.createElement(Icon, {
-        name: ICON[p.method]
-      }), SHORT[p.method], " ", NPF.money(p.amount), " z\u0142", !isTerminal(p.method) && /*#__PURE__*/React.createElement("button", {
+        name: p.icon
+      }), p.name, " ", NPF.money(p.amount), " z\u0142", !isTerminal(p.form) && /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
           return setPays(pays.filter(function (_, j) {
             return j !== i;
@@ -301,19 +334,28 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
         name: "x"
       })));
     })), /*#__PURE__*/React.createElement("div", {
-      className: "np-methods"
-    }, METHODS.map(function (m) {
+      className: 'np-methods r' + rows,
+      style: {
+        gridTemplateColumns: "repeat(".concat(Math.min(4, Math.max(nTiles, 3)), ",minmax(0,1fr))")
+      }
+    }, shown.map(function (m) {
       return /*#__PURE__*/React.createElement("button", {
         key: m.id,
         className: 'np-method' + (method === m.id ? ' on' : ''),
         onClick: function onClick() {
-          setMethod(m.id);
-          setTender('');
+          return pickForm(m.id);
         }
       }, /*#__PURE__*/React.createElement(Icon, {
         name: m.icon
-      }), m.label);
-    })), /*#__PURE__*/React.createElement("div", {
+      }), /*#__PURE__*/React.createElement("span", null, m.name));
+    }), overflow && /*#__PURE__*/React.createElement("button", {
+      className: 'np-method more' + (hiddenSel ? ' on' : ''),
+      onClick: function onClick() {
+        return setMore(true);
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: hiddenSel ? hiddenSel.icon : 'dots'
+    }), /*#__PURE__*/React.createElement("span", null, hiddenSel ? hiddenSel.name : "Wi\u0119cej (".concat(forms.length - shown.length, ")")))), /*#__PURE__*/React.createElement("div", {
       className: "np-tender"
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-tender-row"
@@ -321,7 +363,7 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
       className: tender ? over ? 'short' : '' : 'ph'
     }, tender ? tender : NPF.money(remaining), " z\u0142")), /*#__PURE__*/React.createElement("div", {
       className: "np-tender-row"
-    }, isCash && !partial ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", null, "Reszta"), /*#__PURE__*/React.createElement("b", {
+    }, canChange && !partial ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", null, "Reszta"), /*#__PURE__*/React.createElement("b", {
       className: "change"
     }, NPF.money(change), " z\u0142")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", null, over ? 'Za dużo' : 'Pozostanie'), /*#__PURE__*/React.createElement("b", {
       className: over ? 'short' : 'rest'
@@ -344,7 +386,7 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
       className: "np-pay-hint"
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "split"
-    }), "Wpisz mniejsz\u0105 kwot\u0119, aby podzieli\u0107 p\u0142atno\u015B\u0107 mi\u0119dzy kilka form")), /*#__PURE__*/React.createElement("div", {
+    }), canChange ? 'Wpisz większą kwotę, aby wydać resztę gotówką, lub mniejszą — płatność dzielona' : 'Wpisz mniejszą kwotę, aby podzielić płatność między kilka form')), /*#__PURE__*/React.createElement("div", {
       className: "np-pay-right"
     }, /*#__PURE__*/React.createElement(NumPad, {
       onKey: pushKey,
@@ -361,7 +403,37 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
       className: "np-btn green",
       disabled: invalid,
       onClick: confirm
-    }, primary)));
+    }, primary)), more && /*#__PURE__*/React.createElement("div", {
+      className: "np-pe-pick",
+      onPointerDown: function onPointerDown(e) {
+        if (e.target === e.currentTarget) setMore(false);
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-pe-pickbox np-pay-more"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-pe-pickhead"
+    }, /*#__PURE__*/React.createElement("b", null, "Wszystkie formy p\u0142atno\u015Bci"), /*#__PURE__*/React.createElement("button", {
+      className: "np-round-btn",
+      onClick: function onClick() {
+        return setMore(false);
+      },
+      "aria-label": "Zamknij"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "x"
+    }))), /*#__PURE__*/React.createElement(ScrollArea, {
+      className: "np-pay-more-grid",
+      more: false
+    }, forms.map(function (m) {
+      return /*#__PURE__*/React.createElement("button", {
+        key: m.id,
+        className: 'np-method' + (method === m.id ? ' on' : ''),
+        onClick: function onClick() {
+          return pickForm(m.id);
+        }
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: m.icon
+      }), /*#__PURE__*/React.createElement("span", null, m.name));
+    })))));
   }
   Object.assign(window, {
     PaySheet: PaySheet

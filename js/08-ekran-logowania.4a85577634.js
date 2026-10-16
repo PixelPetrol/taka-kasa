@@ -1,5 +1,11 @@
 "use strict";
 
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
+function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
+function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
+function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
+function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
+function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
@@ -57,6 +63,81 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var list = menuMode ? CASHIERS.filter(function (c) {
       return c.admin;
     }) : CASHIERS;
+    var _useState13 = useState(0),
+      _useState14 = _slicedToArray(_useState13, 2),
+      setShV = _useState14[1];
+    var _useState15 = useState(null),
+      _useState16 = _slicedToArray(_useState15, 2),
+      svc = _useState16[0],
+      setSvc = _useState16[1]; // okno kodu dostępu do funkcji serwisowych: { code, msg }
+    React.useEffect(function () {
+      var h = function h() {
+        return setSvc({
+          code: '',
+          msg: null
+        });
+      };
+      window.addEventListener('np-svc-code', h);
+      return function () {
+        return window.removeEventListener('np-svc-code', h);
+      };
+    }, []);
+    var svcKey = function svcKey(k) {
+      return setSvc(function (s) {
+        if (!s || s.msg) return s;
+        if (k === 'BACK') return _objectSpread(_objectSpread({}, s), {}, {
+          code: s.code.slice(0, -1)
+        });
+        if (k === 'C') return _objectSpread(_objectSpread({}, s), {}, {
+          code: ''
+        });
+        if (k === 'OK') {
+          if (!s.code) return s;
+          var on = !NP_SVC.on();
+          NP_SVC.set(on);
+          setTimeout(function () {
+            return setSvc(null);
+          }, 1400);
+          return _objectSpread(_objectSpread({}, s), {}, {
+            msg: on ? 'Funkcje serwisowe odblokowane' : 'Funkcje serwisowe zablokowane',
+            on: on
+          });
+        }
+        return s.code.length >= 8 ? s : _objectSpread(_objectSpread({}, s), {}, {
+          code: s.code + k
+        });
+      });
+    };
+    React.useEffect(function () {
+      var h = function h() {
+        return setShV(function (x) {
+          return x + 1;
+        });
+      };
+      window.addEventListener('np-shift', h);
+      return function () {
+        return window.removeEventListener('np-shift', h);
+      };
+    }, []);
+    // kolor wg zmiany: zielony = otwarta, czerwony = zamknięta, żółty = manager / serwisant (bez sprzedaży, bez zmian)
+    var stOf = function stOf(c) {
+      return !NP_SHIFT.canShift(c) ? 'na' : NP_SHIFT.isOpen(c.id) ? 'open' : 'closed';
+    };
+    var ST_COLOR = {
+      open: 'var(--np-green)',
+      closed: 'var(--np-red)',
+      na: 'var(--np-orange)'
+    };
+    var sinceOf = function sinceOf(id) {
+      var t = NP_SHIFT.startOf(id);
+      if (!t) return '';
+      var d = new Date(t);
+      var today = d.toDateString() === new Date().toDateString();
+      return ' od ' + (today ? '' : d.toLocaleDateString('pl-PL', {
+        day: '2-digit',
+        month: '2-digit'
+      }) + ' ') + NPF.time(d);
+    };
     var valRef = useRef('');
     var stRef = useRef('idle');
     stRef.current = state;
@@ -90,6 +171,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       if (!v || stRef.current !== 'idle') return;
       if (check(v)) {
         setState('ok');
+        if (!menuMode && NP_SHIFT.canShift(who)) NP_SHIFT.open(who.id);
         setTimeout(function () {
           return onLogin(who, {
             menu: menuMode
@@ -177,7 +259,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-login-left"
     }, /*#__PURE__*/React.createElement(LoginClock, null), /*#__PURE__*/React.createElement("div", {
       className: "np-login-shop"
-    }, /*#__PURE__*/React.createElement("b", null, SHOP.name), /*#__PURE__*/React.createElement("span", null, SHOP.addr), /*#__PURE__*/React.createElement("span", null, SHOP.kasa, " \xB7 ", SHOP.nip), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("b", null, SHOP.name), /*#__PURE__*/React.createElement("span", null, SHOP.addr), /*#__PURE__*/React.createElement("span", null, SHOP.kasa, " \xB7 ", SHOP.nip), /*#__PURE__*/React.createElement("span", {
+      className: "np-login-dev"
+    }, /*#__PURE__*/React.createElement("span", null, "Wersja ", /*#__PURE__*/React.createElement("b", null, SHOP.version)), /*#__PURE__*/React.createElement("span", null, "Nr unikatowy ", /*#__PURE__*/React.createElement("b", null, SHOP.unique))), /*#__PURE__*/React.createElement("div", {
       className: "np-login-status"
     }, /*#__PURE__*/React.createElement("span", {
       className: "np-pill"
@@ -208,26 +292,29 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       "aria-label": "Menu"
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "menu"
-    }), /*#__PURE__*/React.createElement("span", null, "Menu"))), /*#__PURE__*/React.createElement("div", {
-      className: "np-cashiers"
+    }), /*#__PURE__*/React.createElement("span", null, "Menu"))), /*#__PURE__*/React.createElement(ScrollArea, {
+      className: "np-cashiers",
+      more: true
     }, list.map(function (c, i) {
       return /*#__PURE__*/React.createElement("button", {
         key: c.id,
-        className: "np-cashier",
+        className: 'np-cashier st-' + stOf(c),
         onClick: function onClick() {
           return pick(c);
         }
       }, /*#__PURE__*/React.createElement(Avatar, {
-        c: c,
+        c: _objectSpread(_objectSpread({}, c), {}, {
+          color: ST_COLOR[stOf(c)]
+        }),
         size: 54
       }), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
         className: "np-cashier-name"
       }, c.name), /*#__PURE__*/React.createElement("span", {
         className: "np-cashier-role"
-      }, c.role)), /*#__PURE__*/React.createElement("span", {
+      }, c.role, /*#__PURE__*/React.createElement("i", null, stOf(c) === 'open' ? 'zmiana otwarta' + sinceOf(c.id) : stOf(c) === 'closed' ? 'zmiana zamknięta' : 'bez dostępu do sprzedaży'))), /*#__PURE__*/React.createElement("span", {
         className: "np-cashier-num"
       }, i + 1), /*#__PURE__*/React.createElement(Icon, {
-        name: "chevron-right"
+        name: stOf(c) === 'open' ? 'log-in' : stOf(c) === 'closed' ? 'lock' : 'chevron-right'
       }));
     }))) : /*#__PURE__*/React.createElement("div", {
       className: "np-pin",
@@ -243,11 +330,13 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "chevron-left"
     })), /*#__PURE__*/React.createElement(Avatar, {
-      c: who,
+      c: _objectSpread(_objectSpread({}, who), {}, {
+        color: ST_COLOR[stOf(who)]
+      }),
       size: 54
     }), /*#__PURE__*/React.createElement("div", {
       className: "np-pin-who"
-    }, /*#__PURE__*/React.createElement("b", null, who.name), /*#__PURE__*/React.createElement("span", null, locked ? 'Kasa zablokowana' : menuMode ? 'Wejście do Menu · ' + who.role : who.role))), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("b", null, who.name), /*#__PURE__*/React.createElement("span", null, locked ? 'Kasa zablokowana' : menuMode ? 'Wejście do Menu · ' + who.role : who.role + (stOf(who) === 'open' ? ' · zmiana otwarta' + sinceOf(who.id) : stOf(who) === 'closed' ? ' · po zalogowaniu zostanie otwarta nowa zmiana' : '')))), /*#__PURE__*/React.createElement("div", {
       className: "np-seg full np-login-seg"
     }, /*#__PURE__*/React.createElement("button", {
       className: method === 'secret' ? 'on' : '',
@@ -319,7 +408,37 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         return submit();
       },
       enterLabel: "Zaloguj"
-    })))));
+    })))), svc && /*#__PURE__*/React.createElement(Sheet, {
+      className: "np-amount np-svc-code",
+      onClose: function onClose() {
+        return setSvc(null);
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-svc-h"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: 'np-svc-ico' + (svc.msg ? svc.on ? ' on' : ' off' : '')
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: svc.msg ? svc.on ? 'check' : 'lock' : 'key'
+    })), /*#__PURE__*/React.createElement("b", null, svc.msg || 'Kod dostępu'), /*#__PURE__*/React.createElement("small", null, svc.msg ? svc.on ? 'Naprawy i Auto-paragony są widoczne w Menu › Administracja' : 'Naprawy i Auto-paragony ukryte' : NP_SVC.on() ? 'Wpisz kod, aby zablokować funkcje serwisowe' : 'Wpisz kod, aby odblokować funkcje serwisowe')), !svc.msg && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      className: "np-svc-dots"
+    }, svc.code ? '•'.repeat(svc.code.length) : /*#__PURE__*/React.createElement("span", null, "kod serwisowy")), /*#__PURE__*/React.createElement(NumPad, {
+      onKey: svcKey,
+      keys: [['7', '8', '9'], ['4', '5', '6'], ['1', '2', '3'], ['C', '0', 'BACK']],
+      className: "on-gray"
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "np-sheet-actions"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "np-btn",
+      onClick: function onClick() {
+        return setSvc(null);
+      }
+    }, "Anuluj"), /*#__PURE__*/React.createElement("button", {
+      className: "np-btn green",
+      disabled: !svc.code,
+      onClick: function onClick() {
+        return svcKey('OK');
+      }
+    }, NP_SVC.on() ? 'Zablokuj' : 'Odblokuj')))));
   }
   function OffScreen(_ref2) {
     var onBoot = _ref2.onBoot;

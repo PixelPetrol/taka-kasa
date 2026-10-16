@@ -125,8 +125,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       rooms: [defaultRoom(count)]
     };
   }
+  // napisy/strefy i stare ściany nie blokują pól — można na nich stawiać stoliki
   var items = function items(room) {
-    return room.t.concat(room.fx);
+    return room.t.concat(room.fx.filter(function (f) {
+      return f.k !== 'label' && f.k !== 'wall';
+    }));
   };
   var dims = function dims(room) {
     return [room.cols || GC, room.rows || GR];
@@ -177,8 +180,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           key: i,
           className: "np-ch r",
           style: {
-            left: "calc(50% + ".concat(Math.cos(a) * 50, "% - 6px)"),
-            top: "calc(50% + ".concat(Math.sin(a) * 50, "% - 6px)")
+            left: "calc(50% + ".concat(Math.cos(a) * 47, "% - 9px)"),
+            top: "calc(50% + ".concat(Math.sin(a) * 47, "% - 3.5px)"),
+            transform: "rotate(".concat(a * 180 / Math.PI + 90, "deg)")
           }
         }));
       }
@@ -258,7 +262,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           return onCellTap(x, y);
         }
       });
-    }), room.fx.map(function (f) {
+    }), room.fx.filter(function (f) {
+      return f.k !== 'wall';
+    }).map(function (f) {
       return /*#__PURE__*/React.createElement("div", {
         key: f.id,
         className: 'np-fx ' + f.k + (f.id === selId ? ' sel' : '') + (f.id === dragId ? ' drag' : ''),
@@ -272,7 +278,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         onClick: edit ? function () {
           return onItemTap(f);
         } : undefined
-      }, f.k === 'wall' ? '' : f.label, f.k === 'label' ? ' ↓' : '');
+      }, f.k === 'wall' ? '' : f.label);
     }), room.t.map(function (t) {
       var i = !edit && tInfo ? tInfo(t) : null;
       var cls = i ? i.cls : 'free';
@@ -423,16 +429,6 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       w: 2,
       h: 1,
       label: 'BAR'
-    }
-  }, {
-    key: 'wall',
-    label: 'Ściana',
-    ico: 'w',
-    f: {
-      k: 'wall',
-      w: 3,
-      h: 1,
-      label: ''
     }
   }, {
     key: 'door',

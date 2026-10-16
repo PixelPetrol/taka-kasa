@@ -1075,7 +1075,22 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       onClick: function onClick() {
         return setCal(cal === 'to' ? null : 'to');
       }
-    }, /*#__PURE__*/React.createElement("span", null, "Do"), /*#__PURE__*/React.createElement("b", null, dd(rTo))), cal && /*#__PURE__*/React.createElement(MiniCal, {
+    }, /*#__PURE__*/React.createElement("span", null, "Do"), /*#__PURE__*/React.createElement("b", null, dd(rTo))), cal && (window.NpDateSheet ? /*#__PURE__*/React.createElement(NpDateSheet, {
+      key: cal,
+      title: cal === 'from' ? 'Data początkowa' : 'Data końcowa',
+      value: NP_REP.iso(cal === 'from' ? rFrom : rTo),
+      min: cal === 'to' ? NP_REP.iso(rFrom) : null,
+      max: cal === 'from' ? NP_REP.iso(rTo) : NP_REP.iso(Date.now()),
+      onClose: function onClose() {
+        return setCal(null);
+      },
+      onPick: function onPick(s) {
+        var t = NP_REP.fromIso(s).getTime();
+        if (cal === 'from') setRFrom(t);else setRTo(t);
+        setCal(null);
+        setSel(null);
+      }
+    }) : /*#__PURE__*/React.createElement(MiniCal, {
       key: cal,
       value: cal === 'from' ? rFrom : rTo,
       min: cal === 'to' ? rFrom : null,
@@ -1088,7 +1103,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         setCal(null);
         setSel(null);
       }
-    })), /*#__PURE__*/React.createElement("div", {
+    }))), /*#__PURE__*/React.createElement("div", {
       className: "np-park-who"
     }, /*#__PURE__*/React.createElement("button", {
       className: who === 'all' ? 'on' : '',

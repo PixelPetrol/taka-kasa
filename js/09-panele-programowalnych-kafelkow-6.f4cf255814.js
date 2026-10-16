@@ -42,7 +42,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         p: p,
         label: p.name,
         icon: slot.icon === 'none' ? null : ico || NP_DB.pictOf(p),
-        color: slot.color || 'gray'
+        color: slot.color || 'gray',
+        img: slot.useImg && p.img && window.NP_IMG && NP_IMG.on() ? p.img : null
       } : null;
     }
     var f = FBY[slot.id];
@@ -65,10 +66,21 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       name: "plus"
     }));
     return /*#__PURE__*/React.createElement("div", {
-      className: "np-tile c-".concat(info.color, " k-").concat(info.kind).concat(info.icon ? ' has-ico' : '').concat(slot.w > 1 ? ' big' : '').concat(slot.h > 1 ? ' tall' : '')
-    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-tile c-".concat(info.color, " k-").concat(info.kind).concat(info.icon ? ' has-ico' : '').concat(info.img ? ' has-img' : '').concat(slot.w > 1 ? ' big' : '').concat(slot.h > 1 ? ' tall' : '')
+    }, info.img && /*#__PURE__*/React.createElement("img", {
+      className: "np-tile-img",
+      src: info.img,
+      alt: "",
+      loading: "lazy",
+      draggable: "false",
+      onError: function onError(e) {
+        var t = e.currentTarget.parentNode;
+        e.currentTarget.style.display = 'none';
+        if (t) t.classList.remove('has-img');
+      }
+    }), /*#__PURE__*/React.createElement("div", {
       className: "np-tile-top"
-    }, info.icon ? /*#__PURE__*/React.createElement(Icon, {
+    }, info.icon && !info.img ? /*#__PURE__*/React.createElement(Icon, {
       name: info.icon,
       className: "np-tile-ico"
     }) : /*#__PURE__*/React.createElement("span", null), showF && info.kind === 'f' ? /*#__PURE__*/React.createElement("span", {
@@ -563,29 +575,35 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       _useState16 = _slicedToArray(_useState15, 2),
       iconPick = _useState16[0],
       setIconPick = _useState16[1];
-    var _useState17 = useState(''),
+    var _useState17 = useState(!!(slot && slot.useImg)),
       _useState18 = _slicedToArray(_useState17, 2),
-      iq = _useState18[0],
-      setIq = _useState18[1];
-    var _useState19 = useState('all'),
+      useImg = _useState18[0],
+      setUseImg = _useState18[1];
+    var _useState19 = useState(''),
       _useState20 = _slicedToArray(_useState19, 2),
-      icat = _useState20[0],
-      setIcat = _useState20[1];
-    var _useState21 = useState(''),
+      iq = _useState20[0],
+      setIq = _useState20[1];
+    var _useState21 = useState('all'),
       _useState22 = _slicedToArray(_useState21, 2),
-      q = _useState22[0],
-      setQ = _useState22[1];
-    var _useState23 = useState('all'),
+      icat = _useState22[0],
+      setIcat = _useState22[1];
+    var _useState23 = useState(''),
       _useState24 = _slicedToArray(_useState23, 2),
-      grp = _useState24[0],
-      setGrp = _useState24[1];
-    var draft = id ? _objectSpread(_objectSpread(_objectSpread(_objectSpread({
+      q = _useState24[0],
+      setQ = _useState24[1];
+    var _useState25 = useState('all'),
+      _useState26 = _slicedToArray(_useState25, 2),
+      grp = _useState26[0],
+      setGrp = _useState26[1];
+    var draft = id ? _objectSpread(_objectSpread(_objectSpread(_objectSpread(_objectSpread({
       t: type,
       id: id
     }, color ? {
       color: color
     } : {}), icon && type === 'p' ? {
       icon: icon
+    } : {}), useImg && type === 'p' ? {
+      useImg: true
     } : {}), size[0] > 1 ? {
       w: size[0]
     } : {}), size[1] > 1 ? {
@@ -677,7 +695,26 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           key: i
         });
       })), w, "\xD7", h);
-    }))), type === 'p' && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    }))), type === 'p' && window.NP_IMG && NP_IMG.on() && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      className: "np-ed-label"
+    }, "Na kafelku ", /*#__PURE__*/React.createElement("em", {
+      className: "np-exp"
+    }, "eksperymentalne")), /*#__PURE__*/React.createElement("div", {
+      className: "np-seg np-ed-imgseg"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: !useImg ? 'on' : '',
+      onClick: function onClick() {
+        return setUseImg(false);
+      }
+    }, "Piktogram"), /*#__PURE__*/React.createElement("button", {
+      className: useImg ? 'on' : '',
+      disabled: !(id && NP_DB.get(id) && NP_DB.get(id).img),
+      onClick: function onClick() {
+        return setUseImg(true);
+      }
+    }, "Obrazek")), id && NP_DB.get(id) && !NP_DB.get(id).img && /*#__PURE__*/React.createElement("div", {
+      className: "np-ed-hint"
+    }, "Towar nie ma obrazka \u2014 przypisz go w karcie towaru.")), type === 'p' && !useImg && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
       className: "np-ed-label"
     }, "Piktogram"), /*#__PURE__*/React.createElement("button", {
       className: 'np-ed-icon' + (iconPick ? ' on' : ''),

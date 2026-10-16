@@ -1649,14 +1649,21 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           }
           dialog({
             tone: 'question',
-            title: 'Wykonać raport dobowy?',
-            desc: 'Raport zamyka dzień sprzedaży i zostanie wysłany do CRK.',
+            title: 'Raport fiskalny dobowy',
+            desc: 'Czy chcesz wykonać raport fiskalny dobowy i czy podana poniżej data i godzina są prawidłowe?',
+            rows: [['Data i godzina kasy', new Date().toLocaleString('pl-PL', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
+            }).replace(',', '')], ['Paragony od ostatniego raportu', String(stats.receipts)], ['Sprzedaż brutto', "".concat(M(stats.gross), " z\u0142")]],
             actions: [{
-              label: 'Anuluj',
+              label: 'Nie',
               cancel: true,
               onClick: close
             }, {
-              label: 'Wykonaj raport',
+              label: 'Tak, wykonaj',
               primary: true,
               onClick: function onClick() {
                 var s = stats;
@@ -1714,14 +1721,26 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
               label: 'Nie',
               cancel: true,
               onClick: close
-            }, {
+            }].concat(NP_SHIFT.canShift(cashier) && NP_SHIFT.isOpen(cashier.id) ? [{
+              label: 'Zamknij zmianę',
+              tone: 'red',
+              onClick: function onClick() {
+                close();
+                NP_SHIFT.close(cashier.id);
+                progressThen('Drukowanie raportu zmiany…', cashier.name, 1300, {
+                  title: 'Zmiana zamknięta',
+                  rows: [['Kasjer', cashier.name]]
+                });
+                later(onLogout, 1500);
+              }
+            }] : []).concat([{
               label: 'Wyjdź',
               primary: true,
               onClick: function onClick() {
                 close();
                 onLogout();
               }
-            }]
+            }])
           });
           return;
         case 'blokada':
@@ -1851,7 +1870,39 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         err('Zakończ lub anuluj paragon przed zmianą kasjera');
         return;
       }
-      onLogout();
+      if (menuOnly || !NP_SHIFT.canShift(cashier) || !NP_SHIFT.isOpen(cashier.id)) {
+        onLogout();
+        return;
+      }
+      dialog({
+        tone: 'question',
+        title: 'Wylogować kasjera?',
+        desc: "".concat(cashier.name, " \xB7 zmiana otwarta od ").concat(NPF.time(new Date(NP_SHIFT.startOf(cashier.id))), ". Po wylogowaniu zmiana mo\u017Ce zosta\u0107 otwarta \u2014 kasjer wr\xF3ci do niej po ponownym zalogowaniu."),
+        actions: [{
+          label: 'Anuluj',
+          cancel: true,
+          onClick: close
+        }, {
+          label: 'Zamknij zmianę',
+          tone: 'red',
+          onClick: function onClick() {
+            close();
+            progressThen('Drukowanie raportu zmiany…', cashier.name, 1300, {
+              title: 'Zmiana zamknięta',
+              rows: [['Kasjer', cashier.name], ['Paragony', String(stats.receipts)], ['Sprzedaż', "".concat(M(stats.gross), " z\u0142")]]
+            });
+            NP_SHIFT.close(cashier.id);
+            later(onLogout, 1500);
+          }
+        }, {
+          label: 'Wyloguj',
+          primary: true,
+          onClick: function onClick() {
+            close();
+            onLogout();
+          }
+        }]
+      });
     };
     var powerDialog = function powerDialog() {
       return dialog({

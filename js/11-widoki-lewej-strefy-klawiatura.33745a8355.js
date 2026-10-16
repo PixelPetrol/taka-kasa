@@ -288,9 +288,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var nq = NPF.norm(q.trim());
     var inGroup = grp === 'fav' ? PRODUCTS.filter(function (p) {
       return favList.includes(p.plu);
-    }) : grp === 'all' ? PRODUCTS : PRODUCTS.filter(function (p) {
-      return p.group === grp;
-    });
+    }) : grp === 'all' ? PRODUCTS : function () {
+      var ids = NP_DB.groupSubtree(grp);
+      return PRODUCTS.filter(function (p) {
+        return ids.includes(p.group);
+      });
+    }();
     var base = nq ? PRODUCTS.filter(function (p) {
       return NPF.norm(p.name).includes(nq) || p.plu === nq || (p.ean || '').startsWith(nq);
     }) : inGroup;
@@ -335,13 +338,19 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       label: 'Wszystkie',
       icon: 'list',
       n: cnt(PRODUCTS)
-    }], _toConsumableArray(GROUPS.map(function (g) {
+    }], _toConsumableArray(NP_DB.groupTree().filter(function (t) {
+      return t.g.active !== false;
+    }).map(function (_ref4) {
+      var g = _ref4.g,
+        depth = _ref4.depth;
+      var ids = NP_DB.groupSubtree(g.id);
       return {
         id: g.id,
         label: g.label,
         icon: g.icon,
+        depth: depth,
         n: cnt(PRODUCTS.filter(function (p) {
-          return p.group === g.id;
+          return ids.includes(p.group);
         }))
       };
     })));
@@ -368,7 +377,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }, side.map(function (s) {
       return /*#__PURE__*/React.createElement("button", {
         key: s.id,
-        className: 'np-side-item' + (!nq && grp === s.id ? ' on' : ''),
+        className: 'np-side-item' + (!nq && grp === s.id ? ' on' : '') + (s.depth ? ' sub' : ''),
+        style: s.depth ? {
+          paddingLeft: 12 + Math.min(s.depth, 3) * 16
+        } : null,
         onClick: function onClick() {
           setGrp(s.id);
           setQ('');
@@ -518,13 +530,13 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   // ── Klawisz F: 3 × 3 programowalnych pól (funkcje lub towary) ──
   // Cyfry z klawiatury odpowiadają położeniu pól: 7-8-9 / 4-5-6 / 1-2-3
   var FKEY_DIGITS = ['7', '8', '9', '4', '5', '6', '1', '2', '3'];
-  function FSheet(_ref4) {
-    var slots = _ref4.slots,
-      initialEdit = _ref4.initialEdit,
-      onRun = _ref4.onRun,
-      onEdit = _ref4.onEdit,
-      onClose = _ref4.onClose,
-      counts = _ref4.counts;
+  function FSheet(_ref5) {
+    var slots = _ref5.slots,
+      initialEdit = _ref5.initialEdit,
+      onRun = _ref5.onRun,
+      onEdit = _ref5.onEdit,
+      onClose = _ref5.onClose,
+      counts = _ref5.counts;
     var _useState9 = useState(!!initialEdit),
       _useState0 = _slicedToArray(_useState9, 2),
       edit = _useState0[0],
@@ -600,13 +612,13 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     label: 'Menu',
     icon: 'menu'
   }];
-  function TabBar(_ref5) {
-    var tab = _ref5.tab,
-      setTab = _ref5.setTab,
-      _ref5$disabled = _ref5.disabled,
-      disabled = _ref5$disabled === void 0 ? {} : _ref5$disabled,
-      _ref5$gastro = _ref5.gastro,
-      gastro = _ref5$gastro === void 0 ? false : _ref5$gastro;
+  function TabBar(_ref6) {
+    var tab = _ref6.tab,
+      setTab = _ref6.setTab,
+      _ref6$disabled = _ref6.disabled,
+      disabled = _ref6$disabled === void 0 ? {} : _ref6$disabled,
+      _ref6$gastro = _ref6.gastro,
+      gastro = _ref6$gastro === void 0 ? false : _ref6$gastro;
     var list = TABS.filter(function (t) {
       return !t.gastro || gastro;
     });

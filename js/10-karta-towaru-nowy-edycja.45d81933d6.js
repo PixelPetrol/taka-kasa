@@ -647,8 +647,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var OPTS = {
       group: {
         label: 'Asortyment',
-        list: GROUPS.map(function (g) {
-          return [g.id, g.label];
+        list: NP_DB.groupTree().filter(function (t) {
+          return t.g.active !== false || t.g.id === f.group;
+        }).map(function (_ref5) {
+          var g = _ref5.g,
+            depth = _ref5.depth;
+          return [g.id, "\u2003".repeat(depth) + (depth ? '└ ' : '') + g.label];
         })
       },
       type: {
@@ -695,9 +699,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }
     };
     var labelOf = function labelOf(k) {
-      var o = OPTS[k].list.find(function (_ref5) {
-        var _ref6 = _slicedToArray(_ref5, 1),
-          v = _ref6[0];
+      var o = OPTS[k].list.find(function (_ref6) {
+        var _ref7 = _slicedToArray(_ref6, 1),
+          v = _ref7[0];
         return v === f[k];
       });
       return o ? o[1] : String(f[k] == null ? '—' : f[k]);
@@ -790,7 +794,38 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       name: "x"
     })), /*#__PURE__*/React.createElement(Icon, {
       name: "chevron-right"
-    }))), field('name', null, {
+    }))), window.NP_IMG && NP_IMG.on() && /*#__PURE__*/React.createElement("div", {
+      className: "np-pe-f span"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "np-pe-l"
+    }, "Obrazek towaru", /*#__PURE__*/React.createElement("em", null, "eksperymentalne \xB7 zdj\u0119cie przyk\u0142adowe z internetu")), /*#__PURE__*/React.createElement("div", {
+      className: "np-pe-img"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "np-pe-img-prev"
+    }, f.img ? /*#__PURE__*/React.createElement("img", {
+      src: f.img,
+      alt: ""
+    }) : /*#__PURE__*/React.createElement(Icon, {
+      name: "image"
+    })), /*#__PURE__*/React.createElement("span", {
+      className: "np-pe-img-btns"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "np-pill-btn ink",
+      onClick: function onClick() {
+        hideOsk();
+        set('img', NP_IMG.url(f, (+f.plu || 1) + (f.imgN || 0) * 97));
+        set('imgN', (f.imgN || 0) + 1);
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "refresh-cw"
+    }), f.img ? 'Inny obrazek' : 'Pobierz obrazek'), f.img && /*#__PURE__*/React.createElement("button", {
+      className: "np-pill-btn danger",
+      onClick: function onClick() {
+        return set('img', null);
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "trash-2"
+    }), "Usu\u0144"), /*#__PURE__*/React.createElement("small", null, "S\u0142owo kluczowe: ", NP_IMG.kw(f), " (z piktogramu lub asortymentu). Na kafelku w\u0142\u0105czysz go w programowaniu kafelka.")))), field('name', null, {
       span: true
     }), field('ean', null, {
       span: true,
@@ -1018,12 +1053,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       more: false
     }, [['pack', 'DRS · kaucja za opakowanie zwrotne', 'Doliczana do paragonu, zwracana przy oddaniu opakowania', function (p) {
       return !isSup(p);
-    }], ['sup', 'SUP · opłata za opakowanie jednorazowe', 'Opłata za kubek lub pojemnik z tworzywa', isSup]].map(function (_ref7) {
-      var _ref8 = _slicedToArray(_ref7, 4),
-        k = _ref8[0],
-        title = _ref8[1],
-        sub = _ref8[2],
-        flt = _ref8[3];
+    }], ['sup', 'SUP · opłata za opakowanie jednorazowe', 'Opłata za kubek lub pojemnik z tworzywa', isSup]].map(function (_ref8) {
+      var _ref9 = _slicedToArray(_ref8, 4),
+        k = _ref9[0],
+        title = _ref9[1],
+        sub = _ref9[2],
+        flt = _ref9[3];
       return /*#__PURE__*/React.createElement("div", {
         key: k,
         className: "np-supdrs-sec"
@@ -1035,10 +1070,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         return (p.group === 'kaucje' || p.type === 'Opakowanie') && p.active !== false && flt(p);
       }).map(function (p) {
         return [p.plu, "".concat(p.name, " \xB7 ").concat(NPF.money(p.price), " z\u0142")];
-      })).map(function (_ref9) {
-        var _ref0 = _slicedToArray(_ref9, 2),
-          v = _ref0[0],
-          l = _ref0[1];
+      })).map(function (_ref0) {
+        var _ref1 = _slicedToArray(_ref0, 2),
+          v = _ref1[0],
+          l = _ref1[1];
         return /*#__PURE__*/React.createElement("button", {
           key: String(v),
           className: f[k] === v ? 'on' : '',
@@ -1085,10 +1120,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }))), /*#__PURE__*/React.createElement(ScrollArea, {
       className: "np-choices",
       more: false
-    }, OPTS[pick].list.map(function (_ref1) {
-      var _ref10 = _slicedToArray(_ref1, 2),
-        v = _ref10[0],
-        l = _ref10[1];
+    }, OPTS[pick].list.map(function (_ref10) {
+      var _ref11 = _slicedToArray(_ref10, 2),
+        v = _ref11[0],
+        l = _ref11[1];
       return /*#__PURE__*/React.createElement("button", {
         key: String(v),
         className: f[pick] === v ? 'on' : '',

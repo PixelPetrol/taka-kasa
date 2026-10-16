@@ -346,6 +346,14 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         return npSetSetting('gastroWidok', v === 'plan' ? 'Plan sali' : 'Siatka');
       }
     }), /*#__PURE__*/React.createElement(TweakSection, {
+      label: "Eksperymentalne"
+    }), /*#__PURE__*/React.createElement(TweakToggle, {
+      label: "Obrazki towar\xF3w",
+      value: !!gs.prodImages,
+      onChange: function onChange(v) {
+        return npSetSetting('prodImages', v);
+      }
+    }), /*#__PURE__*/React.createElement(TweakSection, {
       label: "Dane demo"
     }), /*#__PURE__*/React.createElement(TweakButton, {
       label: "Poka\u017C ekran logowania",

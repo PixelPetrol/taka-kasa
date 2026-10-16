@@ -111,6 +111,23 @@
   for (let i = 0; i < PRODUCTS.length; i++) PRODUCTS[i] = withDefaults(PRODUCTS[i]);
   // piktogramy asortymentów ustawione przez użytkownika
   try { const gi = JSON.parse(localStorage.getItem('nextpro.groupIcons') || '{}') || {}; GROUPS.forEach((g) => { if (gi[g.id]) g.icon = gi[g.id]; }); } catch (e) {}
+  // asortymenty dodane przez użytkownika + zmienione nazwy
+  const GX_KEY = 'nextpro.groupsX';
+  // drzewo: parent (nadrzędny asortyment), active, kolejność (order) — zapis w nextpro.groupsX
+  const GX0 = () => ({ custom: [], names: {}, parents: {}, inactive: {}, order: null });
+  const gxRead = () => { try { return { ...GX0(), ...(JSON.parse(localStorage.getItem(GX_KEY) || 'null') || {}) }; } catch (e) { return GX0(); } };
+  const gxWrite = (x) => { try { localStorage.setItem(GX_KEY, JSON.stringify(x)); } catch (e) {} };
+  {
+    const gx = gxRead();
+    gx.custom.forEach((g) => { if (!GROUPS.some((y) => y.id === g.id)) GROUPS.push({ ...g, custom: true }); });
+    GROUPS.forEach((g) => { if (gx.names[g.id]) g.label = gx.names[g.id]; g.parent = gx.parents[g.id] || null; g.active = !gx.inactive[g.id]; });
+    GROUPS.forEach((g) => { if (g.parent && !GROUPS.some((y) => y.id === g.parent)) g.parent = null; });
+    if (gx.order) { const ix = (id) => { const i = gx.order.indexOf(id); return i < 0 ? 1e4 : i; }; GROUPS.sort((a, b) => ix(a.id) - ix(b.id)); }
+  }
+  const gxSync = () => { const gx = gxRead(); gx.parents = {}; gx.inactive = {}; GROUPS.forEach((g) => { if (g.parent) gx.parents[g.id] = g.parent; if (g.active === false) gx.inactive[g.id] = true; }); gx.order = GROUPS.map((g) => g.id); gxWrite(gx); };
+  const kids = (id) => GROUPS.filter((g) => (g.parent || null) === id);
+  const subtree = (id) => { const out = [id]; kids(id).forEach((c) => out.push(...subtree(c.id))); return out; };
+  const tree = () => { const out = []; const walk = (pid, d) => kids(pid).forEach((g) => { out.push({ g, depth: d, n: kids(g.id).length }); walk(g.id, d + 1); }); walk(null, 0); return out; };
   const BY = {};
   const reindex = () => { Object.keys(BY).forEach((k) => delete BY[k]); PRODUCTS.forEach((p) => { BY[p.plu] = p; }); };
   reindex();
@@ -132,6 +149,53 @@
       g.icon = icon || g.icon;
       try { const gi = JSON.parse(localStorage.getItem('nextpro.groupIcons') || '{}') || {}; gi[id] = g.icon; localStorage.setItem('nextpro.groupIcons', JSON.stringify(gi)); } catch (e) {}
       ver++; window.dispatchEvent(new Event('np-products'));
+    },
+    touch() { ver++; window.dispatchEvent(new Event('np-products')); },
+    groupTree: tree,
+    groupKids: (id) => kids(id),
+    groupSubtree: subtree,
+    groupPath: (id) => { const out = []; let g = GROUPS.find((x) => x.id === id); while (g) { out.unshift(g.label); g = g.parent && GROUPS.find((x) => x.id === g.parent); } return out.join(' › '); },
+    // przeniesienie do innego asortymentu (parentId = null → najwyższy poziom); trafia na koniec rodzeństwa
+    moveGroup(id, parentId) {
+      if (parentId && subtree(id).includes(parentId)) return false;
+      const g = GROUPS.find((x) => x.id === id); if (!g) return false;
+      const block = subtree(id).map((k) => GROUPS.find((x) => x.id === k));
+      block.forEach((b) => GROUPS.splice(GROUPS.indexOf(b), 1));
+      g.parent = parentId || null;
+      let at = GROUPS.length;
+      if (parentId) { const last = subtree(parentId).map((k) => GROUPS.findIndex((x) => x.id === k)); at = Math.max(...last) + 1; }
+      GROUPS.splice(at, 0, ...block);
+      gxSync(); ver++; window.dispatchEvent(new Event('np-products'));
+      return true;
+    },
+    // nieaktywny asortyment = nieaktywne całe poddrzewo; aktywacja aktywuje też nadrzędne
+    setGroupActive(id, on) {
+      if (on) { let g = GROUPS.find((x) => x.id === id); while (g) { g.active = true; g = g.parent && GROUPS.find((x) => x.id === g.parent); } }
+      else subtree(id).forEach((k) => { const g = GROUPS.find((x) => x.id === k); if (g) g.active = false; });
+      gxSync(); ver++; window.dispatchEvent(new Event('np-products'));
+    },
+    addGroup(label, icon, parent) {
+      const base = norm(label).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'grupa';
+      let id = 'g-' + base, n = 2; while (GROUPS.some((g) => g.id === id)) id = 'g-' + base + '-' + n++;
+      const g = { id, label, icon: icon || 'package', custom: true, parent: null, active: true };
+      GROUPS.push(g);
+      const gx = gxRead(); gx.custom.push({ id, label, icon: g.icon }); gxWrite(gx);
+      if (parent) NP_DB.moveGroup(id, parent); else { gxSync(); ver++; window.dispatchEvent(new Event('np-products')); }
+      return id;
+    },
+    updateGroup(id, label, icon) {
+      const g = GROUPS.find((x) => x.id === id); if (!g) return;
+      const gx = gxRead();
+      if (label && label !== g.label) { g.label = label; if (g.custom) gx.custom = gx.custom.map((c) => (c.id === id ? { ...c, label } : c)); else gx.names[id] = label; }
+      gxWrite(gx);
+      if (icon && icon !== g.icon) NP_DB.saveGroupIcon(id, icon); else { ver++; window.dispatchEvent(new Event('np-products')); }
+    },
+    removeGroup(id) {
+      const i = GROUPS.findIndex((x) => x.id === id); if (i < 0 || !GROUPS[i].custom || PRODUCTS.some((p) => p.group === id) || kids(id).length) return false;
+      GROUPS.splice(i, 1); gxSync();
+      const gx = gxRead(); gx.custom = gx.custom.filter((c) => c.id !== id); gxWrite(gx);
+      ver++; window.dispatchEvent(new Event('np-products'));
+      return true;
     },
     save(p) {
       const i = PRODUCTS.findIndex((x) => x.plu === p.plu);
@@ -234,11 +298,11 @@
       { label: 'Wyszukaj aktualizacje', icon: 'cloud-upload', badge: '1', action: 'update' },
       { label: 'Status połączenia', icon: 'wifi', action: 'conn' },
       { label: 'Moduły dodatkowe', icon: 'puzzle', action: 'list:modules' },
-      { label: 'Naprawy', icon: 'wrench', action: 'repairs' },
       { label: 'Operacje serwisowe', icon: 'key', action: 'service' },
       { label: 'O programie', icon: 'info', action: 'about' },
-      { label: 'Auto-raport dobowy', icon: 'calendar-clock', action: 'autoReport' },
       { label: 'Pomoc zdalna', icon: 'headset', action: 'remoteHelp', color: 'blue' },
+      { label: 'Naprawy', icon: 'wrench', action: 'repairs', color: 'orange', svc: true },
+      { label: 'Auto-paragony', icon: 'printer', action: 'autoReceipts', color: 'orange', svc: true },
     ] },
     { id: 'prog', label: 'Programowanie', icon: 'grid-3x3', color: 'orange', items: [
       { label: 'Dane sklepu', icon: 'store', action: 'list:shop' },
@@ -253,7 +317,6 @@
       { label: 'Towary', icon: 'package', action: 'goods' },
       { label: 'Formaty kodów wagowych', icon: 'barcode', action: 'list:scalecodes' },
       { label: 'Usługi gastro', icon: 'utensils', action: 'list:gastro' },
-      { label: 'Plan sali i stoliki', icon: 'utensils', action: 'gPlanEdit' },
       { label: 'Klienci', icon: 'users', action: 'list:clients' },
       { label: 'Operatorzy', icon: 'user-cog', action: 'list:operators' },
       { label: 'Profile uprawnień', icon: 'shield-check', action: 'list:profiles' },
@@ -261,21 +324,17 @@
       { label: 'Frazy', icon: 'quote', action: 'list:phrases' },
       { label: 'Rabaty', icon: 'badge-percent', action: 'list:discounts' },
       { label: 'Reguły', icon: 'clipboard-list', action: 'list:rules' },
-      { label: 'Kafelki panelu', icon: 'grid-3x3', action: 'editTiles' },
-      { label: 'Funkcje', icon: 'fkey', action: 'goF' },
-      { label: 'Klawisz F', icon: 'keyboard', action: 'editF' },
-      { label: 'Układ ekranu', icon: 'monitor-smartphone', action: 'layout' },
     ] },
     { id: 'rap', label: 'Raporty', icon: 'chart-column', color: 'teal', items: [
       { label: 'Raport dobowy', icon: 'calendar-clock', action: 'f:rdob' },
-      { label: 'Raport miesięczny', icon: 'calendar-days', action: 'rep:Raport miesięczny' },
-      { label: 'Raport okresowy', icon: 'calendar-range', action: 'f:rokr' },
-      { label: 'Raporty kasjerskie', icon: 'users', action: 'f:rkas' },
-      { label: 'Raport sprzedaży', icon: 'chart-column', action: 'rep:Raport sprzedaży' },
-      { label: 'Raport opakowań', icon: 'recycle', action: 'rep:Raport opakowań' },
-      { label: 'Raport paragonów', icon: 'receipt', action: 'rep:Raport paragonów' },
-      { label: 'Raport faktur', icon: 'file-text', action: 'rep:Raport faktur' },
-      { label: 'Pamięć chroniona', icon: 'lock', action: 'rep:Pamięć chroniona' },
+      { label: 'Raport miesięczny', icon: 'calendar-days', action: 'rpt:month' },
+      { label: 'Raport okresowy', icon: 'calendar-range', action: 'rpt:period' },
+      { label: 'Raporty kasjerskie', icon: 'users', action: 'rpt:cashiers' },
+      { label: 'Raport sprzedaży', icon: 'chart-column', action: 'rpt:sales' },
+      { label: 'Raport opakowań', icon: 'recycle', action: 'rpt:packs' },
+      { label: 'Raport paragonów', icon: 'receipt', action: 'rpt:receipts' },
+      { label: 'Raport faktur', icon: 'file-text', action: 'rpt:invoices' },
+      { label: 'Pamięć chroniona', icon: 'lock', action: 'rpt:memory' },
     ] },
   ];
 
@@ -286,6 +345,7 @@
       { id: 'uiScale', label: 'Wielkość interfejsu', type: 'select', def: '100% (standard)', options: ['90% — więcej miejsca', '100% (standard)', '110%', '120%'], desc: 'Powiększa lub pomniejsza cały ekran: kafelki, klawisze, teksty i odstępy razem, w tych samych proporcjach. Przy większych wartościach mieści się mniej pozycji naraz.' },
       { id: 'textScale', label: 'Wielkość tekstu', type: 'select', def: '100% (standard)', options: ['90%', '100% (standard)', '110%', '120%'], desc: 'Zmienia tylko wielkość napisów. Duże liczby (suma, kwota do zapłaty) i układ ekranu zostają bez zmian, długie nazwy są skracane wielokropkiem.' },
       { id: 'nrKasy', label: 'Numer kasy', type: 'num', def: 1, max: 3, desc: 'Numer kasy, pod jakim będą zapisywane dokumenty w bazie. Służy również do identyfikacji kasy dla zewnętrznych programów.' },
+      { id: 'prodImages', label: 'Obrazki towarów (eksperymentalne)', type: 'toggle', def: false, desc: 'WYŁ (domyślnie) – kafelki pokazują piktogramy. WŁ – w karcie towaru można przypisać obrazek, a w programowaniu kafelka wybrać, czy kafelek ma pokazywać obrazek zamiast piktogramu. Tymczasowe zdjęcia przykładowe z internetu.' },
       { id: 'tilePrices', label: 'Ceny na kafelkach towarów', type: 'toggle', def: false, desc: 'WYŁ (domyślnie) – kafelek pokazuje tylko nazwę towaru, większą i czytelniejszą. WŁ – pod nazwą wyświetlana jest cena.' },
       { id: 'paySummary', label: 'Podsumowanie po zakończeniu paragonu', type: 'toggle', def: true, desc: 'WŁ (domyślnie) – po wydruku pokazuje podsumowanie: suma, formy płatności, reszta. WYŁ – po informacji o drukowaniu kasa od razu przechodzi do nowego paragonu (przy reszcie do wydania i tak ją pokaże).' },
       { id: 'kontrolaStanow', label: 'Kontrola stanów mag.', type: 'toggle', def: false, desc: 'WYŁ (domyślnie) – program pozwoli na sprzedaż poniżej zerowego stanu magazynowego. WŁ – w karcie towaru należy najpierw wprowadzić niezerowy stan magazynowy. Przy sprzedaży program będzie za każdym razem ściągał sprzedaną ilość ze stanu.' },
@@ -307,7 +367,8 @@
     ] },
     { id: 'gastro', label: 'Gastronomia', icon: 'chef-hat', color: 'teal', desc: 'Konfiguracja parametrów gastronomicznych.', params: [
       { id: 'gastroTryb', label: 'Tryb gastronomiczny', type: 'toggle', def: false, desc: 'Włącza obsługę stolików i rachunków: na dolnej belce pojawia się zakładka Gastro (Stoliki, Rachunki otwarte).' },
-      { id: 'gastroWidok', label: 'Widok stolików', type: 'select', def: 'Siatka', options: ['Siatka', 'Plan sali'], desc: 'Siatka – stoliki jako kafelki z numerami. Plan sali – graficzne odwzorowanie sali: stoliki z krzesłami, bar, strefy; układ zmienisz przyciskiem „Edytuj plan”.' },
+      { id: 'gastroWidok', label: 'Widok stolików', type: 'select', def: 'Siatka', options: ['Siatka', 'Plan sali'], desc: 'Siatka – stoliki jako kafelki z numerami. Plan sali – graficzne odwzorowanie sali: stoliki z krzesłami, bar, strefy.' },
+      { id: 'gastroPlan', label: 'Plan sali i stoliki', type: 'action', action: 'gPlanEdit', btn: 'Edytuj plan', desc: 'Sale, rozmieszczenie stolików i krzeseł, bar i strefy. Dostępne w oknie sprzedaży (po zalogowaniu kasjera).' },
       { id: 'gastroStoliki', label: 'Liczba stolików', type: 'num', def: 20, max: 3, desc: 'Liczba stolików dostępnych na planie sali.' },
       { id: 'gastroBony', label: 'Wydruk bonów na kuchnię', type: 'toggle', def: false, desc: 'Drukuje zamówienie na drukarce kuchennej po zatwierdzeniu.' },
       { id: 'gastroDrukarka', label: 'Drukarka kuchenna', type: 'select', def: 'Brak', options: ['Brak', 'Drukarka sieciowa 1', 'Drukarka sieciowa 2'], desc: 'Drukarka, na którą trafiają bony kuchenne.' },
@@ -365,7 +426,33 @@
     { id: 5, name: 'Marek Kowalski', role: 'Manager', level: 'manager', admin: true, auth: 'pin', pin: '1234', card: '10010005', color: '#8E5BD9' },
     { id: 6, name: 'Serwis Novitus', role: 'Serwisant', level: 'serwis', admin: true, auth: 'pin', pin: '1234', card: '10010006', color: '#3A3B40' },
   ];
-  const SHOP = { name: 'Sklep „Pod Lipami”', addr: 'ul. Lipowa 12, 00-950 Warszawa', kasa: 'Kasa nr 2', nip: 'NIP 525-000-11-09' };
+  const SHOP = { name: 'Sklep „Pod Lipami”', addr: 'ul. Lipowa 12, 00-950 Warszawa', kasa: 'Kasa nr 2', nip: 'NIP 525-000-11-09', version: '75.210', versionFull: '7.4.75.210', unique: 'EAG1901346134' };
+  // Zmiany kasjerów: otwierane przy logowaniu (kasjer, nadzorca), wylogowanie nie zamyka zmiany. Manager i serwisant — bez zmian (brak sprzedaży)
+  const SHIFT_KEY = 'nextpro.shifts';
+  const shRead = () => { try { const v = JSON.parse(localStorage.getItem(SHIFT_KEY) || 'null'); if (v) return v; } catch (e) {} return { 1: { start: Date.now() - 3 * 36e5 } }; };
+  const shWrite = (v) => { try { localStorage.setItem(SHIFT_KEY, JSON.stringify(v)); } catch (e) {} window.dispatchEvent(new Event('np-shift')); };
+  const NP_SHIFT = {
+    all: shRead,
+    canShift: (c) => !!c && (c.level === 'kasjer' || c.level === 'nadzorca'),
+    isOpen: (id) => !!shRead()[id],
+    startOf: (id) => (shRead()[id] || {}).start || null,
+    open(id) { const s = shRead(); if (!s[id]) { s[id] = { start: Date.now() }; shWrite(s); } },
+    close(id) { const s = shRead(); if (s[id]) { delete s[id]; shWrite(s); } },
+  };
+  window.NP_SHIFT = NP_SHIFT;
+  // Obrazki towarów (funkcja eksperymentalna): włączane w Ustawienia › Parametry ogólne lub w Tweaks. Tymczasowe zdjęcia z loremflickr.com (słowo kluczowe z piktogramu/asortymentu)
+  // zmiana ustawienia obrazków → przerysowanie kafelków (jak po zapisie towaru)
+  { let last = null; window.addEventListener('np-settings', () => { const on = window.NP_IMG.on(); if (last !== null && on !== last && window.NP_DB && NP_DB.touch) NP_DB.touch(); last = on; }); setTimeout(() => { last = window.NP_IMG.on(); }, 0); }
+  window.NP_IMG = {
+    on: () => { try { return !!(JSON.parse(localStorage.getItem('nextpro.settings') || '{}') || {}).prodImages; } catch (e) { return false; } },
+    kw: (p) => { const P = window.PICTOGRAMS || []; const slug = (p && (p.pict || p.icon)) || (window.NP_DB && NP_DB.groupIcon(p && p.group)) || 'food'; const x = P.find((y) => y.slug === slug); return ((x && x.en) || slug || 'food').split(/[ ,]/)[0].toLowerCase(); },
+    url: (p, lock) => 'https://loremflickr.com/320/320/' + encodeURIComponent(window.NP_IMG.kw(p)) + ',food?lock=' + (lock || (+(p && p.plu) || 1)),
+  };
+  // Funkcje serwisowe (Naprawy, Auto-paragony): odblokowanie kodem — przytrzymanie logo na ekranie logowania. W makiecie domyślnie odblokowane
+  window.NP_SVC = {
+    on: () => { try { return localStorage.getItem('nextpro.svcUnlock') !== '0'; } catch (e) { return true; } },
+    set: (v) => { try { localStorage.setItem('nextpro.svcUnlock', v ? '1' : '0'); } catch (e) {} window.dispatchEvent(new Event('np-svc')); },
+  };
 
   // ── formatery ──
   const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
