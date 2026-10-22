@@ -1,6 +1,10 @@
 "use strict";
 
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
+function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
 function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
@@ -159,19 +163,23 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         y0: e.clientY,
         base: dx,
         sc: sc,
-        mode: null
+        mode: null,
+        "long": false
       });
       var move = function move(ev) {
         var ddx = (ev.clientX - S.x0) / S.sc,
           ddy = (ev.clientY - S.y0) / S.sc;
+        if (S.mode === 'long') return;
         if (!S.mode) {
           if (Math.hypot(ddx, ddy) < 6) return;
+          clearTimeout(S.lt);
           S.mode = Math.abs(ddx) > Math.abs(ddy) ? 'x' : 'y';
           if (S.mode === 'x') setDrag(true);
         }
         if (S.mode === 'x') setDx(Math.max(-150, Math.min(0, S.base + ddx)));
       };
       var _up = function up() {
+        clearTimeout(S.lt);
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', _up);
         window.removeEventListener('pointercancel', _up);
@@ -181,7 +189,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
             return d < -50 ? -108 : 0;
           });
         } else if (!S.mode) {
-          if (S.base < 0) setDx(0);else onSel(l.id);
+          if (S.base < 0) setDx(0);
+          onAction('menu', l);
         }
         S.mode = null;
       };
@@ -228,7 +237,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-line-r1"
     }, /*#__PURE__*/React.createElement("span", {
       className: "np-line-name"
-    }, l.qty < 0 && /*#__PURE__*/React.createElement("em", null, "Zwrot \xB7 "), l.name)), /*#__PURE__*/React.createElement("div", {
+    }, l.qty < 0 && /*#__PURE__*/React.createElement("em", null, "Zwrot \xB7 "), l.name)), (l.note || l.attrs && l.attrs.length > 0) && /*#__PURE__*/React.createElement("div", {
+      className: "np-line-note"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "notebook-pen"
+    }), [].concat(_toConsumableArray(l.attrs || []), [l.note]).filter(Boolean).join(' · ')), /*#__PURE__*/React.createElement("div", {
       className: "np-line-r2"
     }, /*#__PURE__*/React.createElement("span", {
       className: "np-line-calc"
@@ -238,34 +251,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: 'np-adj' + (l.adj < 0 ? ' up' : '')
     }, l.adj > 0 ? 'rabat −' : 'narzut +', Math.abs(l.adj), "%") : null), /*#__PURE__*/React.createElement("span", {
       className: "np-line-total"
-    }, NPF.money(total))), sel && /*#__PURE__*/React.createElement("div", {
-      className: "np-line-actions"
-    }, /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        return onAction('rabat', l);
-      }
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "percent"
-    }), "Rabat"), /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        return onAction('ilosc', l);
-      }
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "calculator"
-    }), "Ilo\u015B\u0107"), /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        return onAction('cena', l);
-      }
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "tag"
-    }), "Cena"), /*#__PURE__*/React.createElement("button", {
-      className: "danger",
-      onClick: function onClick() {
-        return onRemove(l.id);
-      }
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "undo-2"
-    }), "Storno"))), /*#__PURE__*/React.createElement("button", {
+    }, NPF.money(total)))), /*#__PURE__*/React.createElement("button", {
       className: "np-qb plus",
       onClick: function onClick() {
         return onQty(l.id, sg);
@@ -278,6 +264,104 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     })))));
   }
   var ReceiptLineM = React.memo(ReceiptLine);
+
+  // ── menu pozycji (przytrzymanie) — lista akcji jako konfiguracja, łatwa do rozbudowy ──
+  // show(ctx) — czy pokazać, ctx = { line, gastroOn }; tone: 'danger' = czerwona akcja
+  var LINE_MENU = [{
+    id: 'usun',
+    label: 'Usuń pozycję',
+    icon: 'trash-2',
+    tone: 'danger'
+  }, {
+    id: 'cena',
+    label: 'Zmień cenę',
+    icon: 'tag',
+    sub: function sub(c) {
+      return 'obecnie ' + NPF.money(c.line.price) + ' zł';
+    }
+  }, {
+    id: 'ilosc',
+    label: 'Zmień ilość',
+    icon: 'calculator',
+    sub: function sub(c) {
+      return NPF.qty(c.line.qty, c.line.unit) + (c.line.unit === 'kg' ? ' kg' : ' szt.');
+    }
+  }, {
+    id: 'rabat',
+    label: 'Rabat procentowy',
+    icon: 'percent',
+    sub: function sub(c) {
+      return c.line.adj ? (c.line.adj > 0 ? 'rabat −' : 'narzut +') + Math.abs(c.line.adj) + '%' : '';
+    }
+  }, {
+    id: 'atrybuty',
+    label: 'Atrybuty',
+    icon: 'sliders-horizontal',
+    show: function show(c) {
+      return c.gastroOn;
+    }
+  }, {
+    id: 'komentarz',
+    label: 'Komentarz gastro',
+    icon: 'chef-hat',
+    show: function show(c) {
+      return c.gastroOn;
+    },
+    sub: function sub(c) {
+      return c.line.note || '';
+    }
+  }];
+  function LineMenuSheet(_ref3) {
+    var line = _ref3.line,
+      gastroOn = _ref3.gastroOn,
+      onPick = _ref3.onPick,
+      onCancel = _ref3.onCancel;
+    useKeys(function (k) {
+      if (k === 'ESC') onCancel();
+      return true;
+    }, 60);
+    var ctx = {
+      line: line,
+      gastroOn: gastroOn
+    };
+    var items = LINE_MENU.filter(function (it) {
+      return !it.show || it.show(ctx);
+    });
+    var total = NPF.round2(line.qty * line.price * (1 - (line.adj || 0) / 100));
+    return /*#__PURE__*/React.createElement(Sheet, {
+      className: "np-lmenu",
+      onClose: onCancel
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-lmenu-head"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-lmenu-name"
+    }, line.name), /*#__PURE__*/React.createElement("div", {
+      className: "np-lmenu-calc"
+    }, /*#__PURE__*/React.createElement("span", null, NPF.qty(line.qty, line.unit), line.unit === 'kg' ? ' kg' : '', " \xD7 ", NPF.money(line.price)), /*#__PURE__*/React.createElement("b", null, NPF.money(total), " z\u0142"))), /*#__PURE__*/React.createElement("div", {
+      className: 'np-lmenu-list' + (items.length > 6 ? ' two' : '')
+    }, items.map(function (it) {
+      var sub = it.sub ? it.sub(ctx) : '';
+      return /*#__PURE__*/React.createElement("button", {
+        key: it.id,
+        className: 'np-lmenu-it' + (it.tone ? ' ' + it.tone : ''),
+        onClick: function onClick() {
+          return onPick(it.id, line);
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "np-lmenu-ic"
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: it.icon
+      })), /*#__PURE__*/React.createElement("span", {
+        className: "np-lmenu-l"
+      }, it.label, sub ? /*#__PURE__*/React.createElement("small", null, sub) : null), /*#__PURE__*/React.createElement(Icon, {
+        name: "chevron-right",
+        className: "np-lmenu-chev"
+      }));
+    })), /*#__PURE__*/React.createElement("button", {
+      className: "np-btn np-lmenu-cancel",
+      onClick: onCancel
+    }, "Anuluj"));
+  }
   function ReceiptPane(props) {
     var _props$qtyStyle = props.qtyStyle,
       qtyStyle = _props$qtyStyle === void 0 ? 'pill' : _props$qtyStyle,
@@ -324,11 +408,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-empty"
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "receipt"
-    }), /*#__PURE__*/React.createElement("b", null, "Paragon jest pusty"), /*#__PURE__*/React.createElement("span", null, "Zeskanuj towar, wpisz kod na klawiaturze albo wybierz kafelek z panelu")) : lines.map(function (l) {
+    }), /*#__PURE__*/React.createElement("b", null, "Paragon jest pusty"), /*#__PURE__*/React.createElement("span", null, "Zeskanuj towar, wpisz kod na klawiaturze albo wybierz kafelek z panelu")) : lines.map(function (l, i) {
       return /*#__PURE__*/React.createElement(ReceiptLineM, {
         key: l.id,
         l: l,
-        sel: selId === l.id,
+        sel: i === lines.length - 1,
         flash: flashId === l.id,
         onSel: onSelLine,
         onQty: onQty,
@@ -345,6 +429,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   }
   Object.assign(window, {
     ReceiptPane: ReceiptPane,
-    npPad4: pad4
+    npPad4: pad4,
+    LineMenuSheet: LineMenuSheet,
+    LINE_MENU: LINE_MENU
   });
 })();

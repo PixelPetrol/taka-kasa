@@ -398,7 +398,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       ref: inRef,
       value: q,
       inputMode: "none",
-      placeholder: "Szukaj po nazwie, PLU lub kodzie EAN",
+      placeholder: "Szukaj po nazwie lub kodzie",
       onFocus: function onFocus() {
         return setOsk(true);
       },
@@ -478,13 +478,13 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         className: "np-grow-name"
       }, /*#__PURE__*/React.createElement("span", {
         className: "np-grow-t"
-      }, hl(p.name)), counts[p.plu] ? /*#__PURE__*/React.createElement("i", {
-        className: "np-grow-count"
-      }, counts[p.plu]) : null), /*#__PURE__*/React.createElement("span", {
+      }, hl(p.name))), /*#__PURE__*/React.createElement("span", {
         className: "np-grow-code"
-      }, "PLU ", p.plu, p.ean ? ' · ' + p.ean : '', p.type && p.type !== 'Towar' ? ' · ' + p.type.toLowerCase() : '', p.excise ? ' · akcyza' : '', off ? ' · usunięty' : '')), /*#__PURE__*/React.createElement("span", {
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "np-grow-cd"
+      }, p.ean || p.plu, p.type && p.type !== 'Towar' ? ' · ' + p.type.toLowerCase() : '', p.excise ? ' · akcyza' : '', off ? ' · usunięty' : ''), /*#__PURE__*/React.createElement("span", {
         className: "np-grow-vat"
-      }, VAT[p.vat]), /*#__PURE__*/React.createElement("span", {
+      }, VAT[p.vat]))), /*#__PURE__*/React.createElement("span", {
         className: "np-grow-price"
       }, NPF.money(p.price), /*#__PURE__*/React.createElement("small", null, "z\u0142 / ", p.unit)), !manage && /*#__PURE__*/React.createElement("button", {
         className: 'np-star' + (fav ? ' on' : ''),

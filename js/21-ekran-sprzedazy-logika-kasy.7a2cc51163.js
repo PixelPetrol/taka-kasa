@@ -982,6 +982,36 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       clearBuf();
     };
     var onLineAction = function onLineAction(kind, l) {
+      if (kind === 'menu') {
+        setSheet({
+          type: 'lineMenu',
+          props: {
+            lineId: l.id
+          },
+          k: ++seq.current
+        });
+        return;
+      }
+      if (kind === 'usun') {
+        close();
+        storno(l.id);
+        return;
+      }
+      if (kind === 'atrybuty') {
+        close();
+        say('Ten towar nie ma zdefiniowanych atrybutów', 'info');
+        return;
+      }
+      if (kind === 'komentarz') {
+        setSheet({
+          type: 'lineNote',
+          props: {
+            lineId: l.id
+          },
+          k: ++seq.current
+        });
+        return;
+      }
       if (kind === 'rabat') {
         setSheet({
           type: 'rabat',
@@ -2543,17 +2573,56 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           }
         });
       }
-      if (type === 'rabat') {
+      if (type === 'lineMenu') {
         var line = lines.find(function (x) {
+          return x.id === props.lineId;
+        });
+        if (!line) return null;
+        return /*#__PURE__*/React.createElement(LineMenuSheet, {
+          key: k,
+          line: line,
+          gastroOn: gastroOn,
+          onCancel: close,
+          onPick: function onPick(id, l) {
+            return onLineAction(id, l);
+          }
+        });
+      }
+      if (type === 'lineNote') {
+        var _line = lines.find(function (x) {
+          return x.id === props.lineId;
+        });
+        if (!_line) return null;
+        return /*#__PURE__*/React.createElement(GastroTextSheet, {
+          key: k,
+          title: 'Komentarz · ' + _line.name,
+          value: _line.note || '',
+          placeholder: "np. bez cebuli",
+          max: 60,
+          sugg: ['bez cebuli', 'na wynos', 'bez lodu', 'mniej ostre', 'podać później'],
+          onCancel: close,
+          onSave: function onSave(v) {
+            close();
+            commit(linesRef.current.map(function (x) {
+              return x.id === _line.id ? _objectSpread(_objectSpread({}, x), {}, {
+                note: v || undefined
+              }) : x;
+            }));
+            flash(_line.id);
+          }
+        });
+      }
+      if (type === 'rabat') {
+        var _line2 = lines.find(function (x) {
           return x.id === props.lineId;
         }) || null;
         return /*#__PURE__*/React.createElement(RabatSheet, {
           key: k,
-          line: line,
+          line: _line2,
           onCancel: close,
           onApply: function onApply(scope, pct) {
             close();
-            if (scope === 'line' && line) applyAdj(pct, line.id);else {
+            if (scope === 'line' && _line2) applyAdj(pct, _line2.id);else {
               setRcptDisc({
                 type: 'pct',
                 v: pct
@@ -2567,7 +2636,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           onCustom: function onCustom(scope) {
             return amount({
               title: scope === 'line' ? 'Rabat na pozycję' : 'Rabat na paragon',
-              desc: scope === 'line' && line ? line.name : 'Procent od sumy paragonu',
+              desc: scope === 'line' && _line2 ? _line2.name : 'Procent od sumy paragonu',
               mode: 'percent',
               confirmLabel: 'Udziel rabatu',
               confirmTone: 'red',
@@ -2576,7 +2645,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
               },
               onConfirm: function onConfirm(x) {
                 close();
-                if (scope === 'line' && line) applyAdj(x, line.id);else {
+                if (scope === 'line' && _line2) applyAdj(x, _line2.id);else {
                   setRcptDisc({
                     type: 'pct',
                     v: x
