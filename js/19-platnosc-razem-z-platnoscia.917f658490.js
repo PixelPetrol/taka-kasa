@@ -219,7 +219,7 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
         return true;
       }
       if (phase !== 'input') return true;
-      if (/^[0-9]$/.test(k) || k === ',' || k === 'BACK') pushKey(k);else if (k === 'OK' || k === 'RAZEM') confirm();else if (k === 'ESC') {
+      if (/^[0-9]$/.test(k) || k === '.' || k === 'BACK') pushKey(k);else if (k === 'OK' || k === 'RAZEM') confirm();else if (k === 'ESC') {
         if (tender) setTender('');else if (!pays.length) onCancel();
       }
       return true;

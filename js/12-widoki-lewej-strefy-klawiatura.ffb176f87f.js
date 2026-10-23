@@ -73,7 +73,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   }, {
     k: '0'
   }, {
-    k: ','
+    k: '.'
   }, {
     k: 'MENU',
     cls: 'k-logo',

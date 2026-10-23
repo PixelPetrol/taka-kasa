@@ -54,13 +54,14 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     } catch (e) {}
     return {
       ui: pct(s.uiScale),
-      text: s.bigText === 'Powiększona' ? 1.08 : 1,
-      big: s.bigText === 'Powiększona',
+      text: s.bigText !== 'Standardowa' ? 1.08 : 1,
+      big: s.bigText !== 'Standardowa',
       font: s.font === 'Roboto' ? 'roboto' : s.font === 'Geist' ? 'geist' : null,
       qty: s.qtyKeys === 'Pigułki' ? 'pill' : s.qtyKeys === 'Płytki' ? 'slab' : null,
       hl: s.hlLast === 'Brak' ? 'none' : s.hlLast === 'Obramowanie' ? 'border' : s.hlLast === 'Wypełnienie' ? 'fill' : null,
       prices: s.tilePrices === true,
-      theme: s.theme === 'Ciemny' ? 'dark' : s.theme === 'Jasny' ? 'light' : null
+      round: s.roundScreen !== 'Wyłączone',
+      theme: s.theme === 'Ciemny' ? 'dark' : s.theme === 'Beauty (róż)' ? 'beauty' : s.theme === 'Jasny' ? 'light' : null
     };
   }
   // Zapis jednego parametru ustawień kasy (to samo co Menu › Ustawienia)
@@ -76,17 +77,20 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     window.dispatchEvent(new Event('np-settings'));
   }
   // Motyw: klasa np-dark na <html>; zmiana z krótkim przenikaniem (View Transitions), jeśli przeglądarka je obsługuje
-  function useTheme(dark) {
+  function useTheme(theme) {
     var first = React.useRef(true);
     useLayoutEffect(function () {
       var root = document.documentElement;
+      var dark = theme === 'dark',
+        beauty = theme === 'beauty';
       var apply = function apply() {
-        return root.classList.toggle('np-dark', dark);
+        root.classList.toggle('np-dark', dark);
+        root.classList.toggle('np-beauty', beauty);
       };
-      var skip = first.current || !document.startViewTransition || root.classList.contains('np-dark') === dark;
+      var skip = first.current || !document.startViewTransition || root.classList.contains('np-dark') === dark && root.classList.contains('np-beauty') === beauty;
       first.current = false;
       if (skip) apply();else document.startViewTransition(apply);
-    }, [dark]);
+    }, [theme]);
   }
   function useUiPrefs() {
     var _useState = useState(readUiPrefs),
@@ -113,6 +117,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     useEffect(function () {
       document.documentElement.classList.toggle('np-big', !!prefs.big);
     }, [prefs.big]);
+    useEffect(function () {
+      document.documentElement.classList.toggle('np-round', !!prefs.round);
+    }, [prefs.round]);
     var us = prefs.ui;
     var scrRef = React.useRef(null);
     useAutoFitLabels(scrRef);
@@ -157,6 +164,76 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-device-label"
     }, NP_BRAND.a, " ", /*#__PURE__*/React.createElement("b", null, NP_BRAND.b))));
   }
+
+  // Po instalacji nowej wersji: kasa ma własny układ kafelków → pytanie, czy zastosować układ z prezentacji
+  var PRESET_KEYS = ['pages', 'kbRow', 'fKey', 'qPay', 'favs'];
+  function presetNeedsAsk() {
+    var P = window.NP_PRESET;
+    if (!P || !P.layout) return false;
+    try {
+      if (localStorage.getItem('nextpro.presetVer') === P.ver) return false;
+      var has = PRESET_KEYS.some(function (k) {
+        return localStorage.getItem('nextpro.' + k) != null;
+      });
+      var same = PRESET_KEYS.every(function (k) {
+        var v = localStorage.getItem('nextpro.' + k);
+        return v == null || v === JSON.stringify(P.layout[k]);
+      });
+      if (!has || same) {
+        localStorage.setItem('nextpro.presetVer', P.ver);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  function PresetAsk() {
+    var _useState5 = useState(presetNeedsAsk),
+      _useState6 = _slicedToArray(_useState5, 2),
+      open = _useState6[0],
+      setOpen = _useState6[1];
+    if (!open) return null;
+    var P = window.NP_PRESET;
+    var done = function done(apply) {
+      try {
+        if (apply) {
+          PRESET_KEYS.forEach(function (k) {
+            return localStorage.setItem('nextpro.' + k, JSON.stringify(P.layout[k]));
+          });
+          localStorage.setItem('nextpro.page', '0');
+        }
+        localStorage.setItem('nextpro.presetVer', P.ver);
+      } catch (e) {}
+      setOpen(false);
+      if (apply) location.reload();
+    };
+    return /*#__PURE__*/React.createElement("div", {
+      className: "np-sheet-bg np-preset-bg"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-sheet np-preset"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "np-preset-ic"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "layout-grid"
+    })), /*#__PURE__*/React.createElement("div", {
+      className: "np-amount-title"
+    }, "Nowy uk\u0142ad kafelk\xF3w"), /*#__PURE__*/React.createElement("div", {
+      className: "np-preset-desc"
+    }, "Ta wersja ma nowy uk\u0142ad kafelk\xF3w z prezentacji (panele, rz\u0105d pod klawiatur\u0105, klawisz F, szybkie p\u0142atno\u015Bci i ulubione). Na kasie jest zapisany Tw\xF3j w\u0142asny uk\u0142ad."), /*#__PURE__*/React.createElement("div", {
+      className: "np-preset-acts"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "np-btn",
+      onClick: function onClick() {
+        return done(false);
+      }
+    }, /*#__PURE__*/React.createElement("b", null, "Zostaw aktualny"), /*#__PURE__*/React.createElement("small", null, "uk\u0142ad zapisany na kasie")), /*#__PURE__*/React.createElement("button", {
+      className: "np-btn green",
+      onClick: function onClick() {
+        return done(true);
+      }
+    }, /*#__PURE__*/React.createElement("b", null, "Zastosuj z prezentacji"), /*#__PURE__*/React.createElement("small", null, "zast\u0105pi obecny uk\u0142ad")))));
+  }
   var MENU_USER = {
     id: 0,
     name: 'Menu kasy',
@@ -170,7 +247,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       t = _useTweaks2[0],
       setTweak = _useTweaks2[1];
     var uiP = useUiPrefs();
-    var font = uiP.font || t.font || 'geist';
+    var font = uiP.font || 'roboto';
     useEffect(function () {
       document.documentElement.classList.toggle('np-roboto', font === 'roboto');
     }, [font]);
@@ -189,17 +266,20 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     useEffect(function () {
       document.documentElement.classList.toggle('np-big', !!prefs.big);
     }, [prefs.big]);
+    useEffect(function () {
+      document.documentElement.classList.toggle('np-round', !!prefs.round);
+    }, [prefs.round]);
     var gs = useNpSettings();
-    var theme = prefs.theme || (t.theme === 'dark' ? 'dark' : 'light');
-    useTheme(theme === 'dark');
+    var theme = prefs.theme || (t.theme === 'dark' || t.theme === 'beauty' ? t.theme : 'light');
+    useTheme(theme);
     var _useStored = useStored('session', null),
       _useStored2 = _slicedToArray(_useStored, 2),
       session = _useStored2[0],
       setSession = _useStored2[1];
-    var _useState5 = useState('on'),
-      _useState6 = _slicedToArray(_useState5, 2),
-      power = _useState6[0],
-      setPower = _useState6[1];
+    var _useState7 = useState('on'),
+      _useState8 = _slicedToArray(_useState7, 2),
+      power = _useState8[0],
+      setPower = _useState8[1];
     var menuOnly = !!(session && session.menuOnly);
     var cashier = session && (menuOnly ? MENU_USER : NP_DATA.CASHIERS.find(function (c) {
       return c.id === session.cashierId;
@@ -214,7 +294,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     };
     return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Device, {
       frame: FRAME_Q != null ? FRAME_Q : t.frame && !STANDALONE
-    }, screen === 'login' && /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement(PresetAsk, null), screen === 'login' && /*#__PURE__*/React.createElement("div", {
       className: "np-scr",
       key: locked ? 'lock' : 'login',
       "data-screen-label": "Logowanie"
@@ -299,10 +379,29 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }, {
         value: 'dark',
         label: 'Ciemny'
+      }, {
+        value: 'beauty',
+        label: 'Beauty'
       }],
       onChange: function onChange(v) {
         setTweak('theme', v);
-        npSetSetting('theme', v === 'dark' ? 'Ciemny' : 'Jasny');
+        npSetSetting('theme', v === 'dark' ? 'Ciemny' : v === 'beauty' ? 'Beauty (róż)' : 'Jasny');
+      }
+    }), /*#__PURE__*/React.createElement(TweakToggle, {
+      label: "Symulacja: b\u0142\u0105d komunikacji z CRK",
+      value: t.crkErr === true,
+      onChange: function onChange(v) {
+        setTweak('crkErr', v);
+        try {
+          localStorage.setItem('nextpro.crkState', v ? 'err' : 'ok');
+        } catch (e) {}
+        window.dispatchEvent(new Event('np-status'));
+      }
+    }), /*#__PURE__*/React.createElement(TweakToggle, {
+      label: "Zaokr\u0105glone rogi ekranu",
+      value: uiP.round,
+      onChange: function onChange(v) {
+        return npSetSetting('roundScreen', v ? 'Włączone' : 'Wyłączone');
       }
     }), /*#__PURE__*/React.createElement(TweakSection, {
       label: "Uk\u0142ad ekranu sprzeda\u017Cy"

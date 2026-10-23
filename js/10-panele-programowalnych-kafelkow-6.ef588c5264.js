@@ -47,13 +47,36 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       } : null;
     }
     var f = FBY[slot.id];
-    return f ? {
+    if (!f) return null;
+    if (f.arg === 'group' && slot.arg) {
+      var g = qaGroup(slot.arg);
+      if (g) return {
+        kind: 'f',
+        f: f,
+        label: g.label,
+        icon: g.icon,
+        color: slot.color || f.color,
+        qa: true
+      };
+    }
+    return {
       kind: 'f',
       f: f,
       label: f.tile || f.name,
       icon: f.icon,
       color: slot.color || f.color
-    } : null;
+    };
+  }
+  // szybki asortyment: 'favs' = Ulubione, inaczej id asortymentu
+  function qaGroup(arg) {
+    if (arg === 'favs') return {
+      id: 'favs',
+      label: 'Ulubione',
+      icon: 'star'
+    };
+    return GROUPS.find(function (g) {
+      return g.id === arg;
+    }) || null;
   }
   var Tile = React.memo(function Tile(_ref) {
     var slot = _ref.slot,
@@ -83,7 +106,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }, info.icon && !info.img ? /*#__PURE__*/React.createElement(Icon, {
       name: info.icon,
       className: "np-tile-ico"
-    }) : /*#__PURE__*/React.createElement("span", null), showF && info.kind === 'f' ? /*#__PURE__*/React.createElement("span", {
+    }) : /*#__PURE__*/React.createElement("span", null), info.qa ? /*#__PURE__*/React.createElement("span", {
+      className: "np-tile-qa"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "layout-grid"
+    })) : showF && info.kind === 'f' ? /*#__PURE__*/React.createElement("span", {
       className: "np-tile-f"
     }, "F", info.f.f) : null), /*#__PURE__*/React.createElement("div", {
       className: "np-tile-label"
@@ -595,10 +622,21 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       _useState26 = _slicedToArray(_useState25, 2),
       grp = _useState26[0],
       setGrp = _useState26[1];
-    var draft = id ? _objectSpread(_objectSpread(_objectSpread(_objectSpread(_objectSpread({
+    var _useState27 = useState(slot && slot.arg ? slot.arg : 'favs'),
+      _useState28 = _slicedToArray(_useState27, 2),
+      arg = _useState28[0],
+      setArg = _useState28[1];
+    var _useState29 = useState(false),
+      _useState30 = _slicedToArray(_useState29, 2),
+      qaPick = _useState30[0],
+      setQaPick = _useState30[1];
+    var needArg = type === 'f' && id && FBY[id] && FBY[id].arg === 'group';
+    var draft = id ? _objectSpread(_objectSpread(_objectSpread(_objectSpread(_objectSpread(_objectSpread({
       t: type,
       id: id
-    }, color ? {
+    }, needArg ? {
+      arg: arg
+    } : {}), color ? {
       color: color
     } : {}), icon && type === 'p' ? {
       icon: icon
@@ -729,6 +767,19 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       name: "x"
     })), /*#__PURE__*/React.createElement("span", null, curIconName), /*#__PURE__*/React.createElement(Icon, {
       name: "chevron-right"
+    }))), needArg && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      className: "np-ed-label"
+    }, "Asortyment na kafelku"), /*#__PURE__*/React.createElement("button", {
+      className: 'np-ed-icon' + (qaPick ? ' on' : ''),
+      onClick: function onClick() {
+        return setQaPick(!qaPick);
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "np-ed-row-ico"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: (qaGroup(arg) || {}).icon || 'package'
+    })), /*#__PURE__*/React.createElement("span", null, (qaGroup(arg) || {}).label || 'Wybierz'), /*#__PURE__*/React.createElement(Icon, {
+      name: "chevron-right"
     }))), /*#__PURE__*/React.createElement("div", {
       className: "np-ed-label"
     }, "Kolor"), /*#__PURE__*/React.createElement("div", {
@@ -749,7 +800,49 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "trash-2"
-    }), "Wyczy\u015B\u0107 kafelek")), iconPick && type === 'p' ? /*#__PURE__*/React.createElement("div", {
+    }), "Wyczy\u015B\u0107 kafelek")), qaPick && needArg ? /*#__PURE__*/React.createElement("div", {
+      className: "np-ed-main"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-ed-pickhead"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "np-round-btn",
+      onClick: function onClick() {
+        return setQaPick(false);
+      },
+      "aria-label": "Wr\xF3\u0107"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "chevron-left"
+    })), /*#__PURE__*/React.createElement("b", null, "Asortyment na kafelku"), /*#__PURE__*/React.createElement("span", null)), /*#__PURE__*/React.createElement("div", {
+      className: "np-ed-list"
+    }, [{
+      id: 'favs',
+      label: 'Ulubione',
+      icon: 'star'
+    }].concat(_toConsumableArray(GROUPS)).map(function (g) {
+      var n = g.id === 'favs' ? null : NP_DB.all().filter(function (x) {
+        return x.group === g.id && x.active !== false;
+      }).length;
+      return /*#__PURE__*/React.createElement("button", {
+        key: g.id,
+        className: 'np-ed-row' + (arg === g.id ? ' on' : ''),
+        onClick: function onClick() {
+          setArg(g.id);
+          setQaPick(false);
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "np-ed-row-ico"
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: g.icon || 'package'
+      })), /*#__PURE__*/React.createElement("span", {
+        className: "np-ed-row-main"
+      }, /*#__PURE__*/React.createElement("b", null, g.label), /*#__PURE__*/React.createElement("small", null, g.id === 'favs' ? 'towary z listy ulubionych' : n + ' towarów')), /*#__PURE__*/React.createElement("span", {
+        className: "np-ed-row-val"
+      }), /*#__PURE__*/React.createElement("span", {
+        className: "np-ed-check"
+      }, arg === g.id && /*#__PURE__*/React.createElement(Icon, {
+        name: "check"
+      })));
+    }))) : iconPick && type === 'p' ? /*#__PURE__*/React.createElement("div", {
       className: "np-ed-main"
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-ed-pickhead"
@@ -890,7 +983,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         key: f.id,
         className: 'np-ed-row' + (id === f.id ? ' on' : ''),
         onClick: function onClick() {
-          return setId(f.id);
+          setId(f.id);
+          setQaPick(f.arg === 'group');
         }
       }, /*#__PURE__*/React.createElement("span", {
         className: 'np-ed-row-ico bg-' + f.color
@@ -909,7 +1003,197 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-ed-empty"
     }, "Brak wynik\xF3w")))));
   }
+  var plTow = function plTow(n) {
+    return n === 1 ? 'towar' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'towary' : 'towarów';
+  };
+  function qaList(arg, favs) {
+    var all = NP_DB.all().filter(function (x) {
+      return x.active !== false;
+    });
+    if (arg === 'favs') return favs.map(function (x) {
+      return NP_DB.get(x);
+    }).filter(function (x) {
+      return x && x.active !== false;
+    });
+    var ids = NP_DB.groupSubtree ? NP_DB.groupSubtree(arg) : [arg];
+    return all.filter(function (x) {
+      return ids.includes(x.group);
+    });
+  }
+  function QuickGroupSheet(_ref1) {
+    var arg0 = _ref1.arg,
+      _ref1$favs = _ref1.favs,
+      favs = _ref1$favs === void 0 ? [] : _ref1$favs,
+      onSell = _ref1.onSell,
+      onCancel = _ref1.onCancel;
+    var _useState31 = useState(function () {
+        try {
+          return localStorage.getItem('nextpro.qaView') || 'tiles';
+        } catch (e) {
+          return 'tiles';
+        }
+      }),
+      _useState32 = _slicedToArray(_useState31, 2),
+      view = _useState32[0],
+      setViewRaw = _useState32[1];
+    var setView = function setView(v) {
+      setViewRaw(v);
+      try {
+        localStorage.setItem('nextpro.qaView', v);
+      } catch (e) {}
+    };
+    var _useState33 = useState(arg0 || 'favs'),
+      _useState34 = _slicedToArray(_useState33, 2),
+      arg = _useState34[0],
+      setArg = _useState34[1];
+    useKeys(function (k) {
+      if (k === 'ESC') onCancel();
+      return true;
+    }, 60);
+    var shown = view === 'list' ? arg : arg0 || 'favs';
+    var g = qaGroup(shown) || {
+      label: 'Asortyment'
+    };
+    var prods = qaList(shown, favs);
+    var side = [{
+      id: 'favs',
+      label: 'Ulubione',
+      icon: 'star',
+      depth: 0
+    }].concat(_toConsumableArray(NP_DB.groupTree ? NP_DB.groupTree().filter(function (t) {
+      return t.g.active !== false;
+    }).map(function (_ref10) {
+      var x = _ref10.g,
+        depth = _ref10.depth;
+      return {
+        id: x.id,
+        label: x.label,
+        icon: x.icon,
+        depth: depth
+      };
+    }) : GROUPS.map(function (x) {
+      return {
+        id: x.id,
+        label: x.label,
+        icon: x.icon,
+        depth: 0
+      };
+    })));
+    var empty = /*#__PURE__*/React.createElement("div", {
+      className: "np-ed-empty"
+    }, shown === 'favs' ? 'Brak ulubionych towarów' : 'Brak towarów w tym asortymencie');
+    return /*#__PURE__*/React.createElement(Sheet, {
+      className: "np-qa",
+      onClose: onCancel
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-qa-head"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "np-qa-ic"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: g.icon || 'package'
+    })), /*#__PURE__*/React.createElement("b", null, g.label), /*#__PURE__*/React.createElement("small", null, prods.length, " ", plTow(prods.length)), /*#__PURE__*/React.createElement("button", {
+      className: "np-round-btn",
+      onClick: onCancel,
+      "aria-label": "Zamknij"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "x"
+    }))), view === 'list' ? /*#__PURE__*/React.createElement("div", {
+      className: "np-qa-lv"
+    }, /*#__PURE__*/React.createElement(ScrollArea, {
+      key: shown,
+      className: "np-glist",
+      more: false
+    }, prods.length ? prods.map(function (x) {
+      return /*#__PURE__*/React.createElement("div", {
+        key: x.plu,
+        className: "np-grow",
+        role: "button",
+        onClick: function onClick() {
+          return onSell(x);
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        className: 'np-grow-ico' + (NP_DB.pictOf(x) ? ' own' : '')
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: NP_DB.listIcon(x)
+      })), /*#__PURE__*/React.createElement("span", {
+        className: "np-grow-main"
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "np-grow-name"
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "np-grow-t"
+      }, x.name)), /*#__PURE__*/React.createElement("span", {
+        className: "np-grow-code"
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "np-grow-cd"
+      }, x.ean || x.plu))), /*#__PURE__*/React.createElement("span", {
+        className: "np-grow-price"
+      }, NPF.money(x.price), /*#__PURE__*/React.createElement("small", null, "z\u0142 / ", x.unit)));
+    }) : empty), /*#__PURE__*/React.createElement("div", {
+      className: "np-side np-qa-side"
+    }, side.map(function (s) {
+      return /*#__PURE__*/React.createElement("button", {
+        key: s.id,
+        className: 'np-side-item' + (arg === s.id ? ' on' : '') + (s.depth ? ' sub' : ''),
+        style: s.depth ? {
+          paddingLeft: 12 + Math.min(s.depth, 3) * 16
+        } : null,
+        onClick: function onClick() {
+          return setArg(s.id);
+        }
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: s.icon || 'package'
+      }), /*#__PURE__*/React.createElement("span", null, s.label), /*#__PURE__*/React.createElement("small", null, qaList(s.id, favs).length));
+    }))) : /*#__PURE__*/React.createElement(ScrollArea, {
+      className: "np-qa-scroll"
+    }, prods.length ? /*#__PURE__*/React.createElement("div", {
+      className: "np-qa-grid"
+    }, prods.map(function (x) {
+      return /*#__PURE__*/React.createElement("button", {
+        key: x.plu,
+        className: "np-slot",
+        onClick: function onClick() {
+          return onSell(x);
+        }
+      }, /*#__PURE__*/React.createElement(Tile, {
+        slot: {
+          t: 'p',
+          id: x.plu
+        }
+      }));
+    })) : empty), /*#__PURE__*/React.createElement("div", {
+      className: "np-qa-foot"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "np-slot np-qa-view",
+      onClick: function onClick() {
+        setView(view === 'list' ? 'tiles' : 'list');
+        setArg(arg0 || 'favs');
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-tile c-graphite k-f has-ico"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-tile-top"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: view === 'list' ? 'layout-grid' : 'list',
+      className: "np-tile-ico"
+    }), /*#__PURE__*/React.createElement("span", null)), /*#__PURE__*/React.createElement("div", {
+      className: "np-tile-label"
+    }, /*#__PURE__*/React.createElement("span", null, view === 'list' ? 'Kafelki' : 'Lista')))), /*#__PURE__*/React.createElement("button", {
+      className: "np-slot np-qa-cancel",
+      onClick: onCancel
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-tile c-red k-f has-ico"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-tile-top"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "x",
+      className: "np-tile-ico"
+    }), /*#__PURE__*/React.createElement("span", null)), /*#__PURE__*/React.createElement("div", {
+      className: "np-tile-label"
+    }, /*#__PURE__*/React.createElement("span", null, "Anuluj"))))));
+  }
   Object.assign(window, {
+    QuickGroupSheet: QuickGroupSheet,
+    qaGroup: qaGroup,
     Tile: Tile,
     tileInfo: tileInfo,
     npLayout: npLayout,

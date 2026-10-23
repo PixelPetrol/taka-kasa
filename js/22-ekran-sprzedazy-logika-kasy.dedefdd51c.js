@@ -69,154 +69,22 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   var SALE_TABS = ['klawiatura', 'panele', 'funkcjeF', 'towary']; // manager / serwisant: Towary tylko przez Menu › Programowanie
 
   function appendEntry(e, k) {
-    if (k === ',') return e.includes(',') ? e : (e || '0') + ',';
-    if (e.includes(',')) return e.split(',')[1].length >= 3 ? e : e + k;
-    return e.length >= 13 ? e : (e === '0' ? '' : e) + k;
+    if (k === '.') return e.includes('.') ? e : (e || '0') + '.';
+    if (e.includes('.')) return e.split('.')[1].length >= 3 ? e : e + k;
+    return e.length >= 64 ? e : (e === '0' ? '' : e) + k;
   }
   var readScale = function readScale() {
     return Math.round((0.18 + Math.random() * 1.4) * 1000) / 1000;
   };
-
-  // Rabat / narzut na cały dokument: procent lub kwota, podgląd sumy po zmianie
-  function DocAdjSheet(_ref) {
-    var subtotal = _ref.subtotal,
-      current = _ref.current,
+  function RabatSheet(_ref) {
+    var line = _ref.line,
       onApply = _ref.onApply,
-      onRemove = _ref.onRemove,
+      onCustom = _ref.onCustom,
       onCancel = _ref.onCancel;
-    var _useState = useState(current && current.up ? 'up' : 'down'),
+    var _useState = useState(line ? 'line' : 'rcpt'),
       _useState2 = _slicedToArray(_useState, 2),
-      kind = _useState2[0],
-      setKind = _useState2[1];
-    var _useState3 = useState(current ? current.type : 'pct'),
-      _useState4 = _slicedToArray(_useState3, 2),
-      mode = _useState4[0],
-      setMode = _useState4[1];
-    var _useState5 = useState(current ? String(current.v).replace('.', ',') : ''),
-      _useState6 = _slicedToArray(_useState5, 2),
-      v = _useState6[0],
-      setV = _useState6[1];
-    var num = v ? NPF.parseNum(v) : 0;
-    var amt = !(num > 0) ? 0 : NPF.round2(mode === 'pct' ? subtotal * num / 100 : num);
-    var err = !v ? null : !(num > 0) ? 'Wpisz wartość większą od zera' : mode === 'pct' && num >= 100 ? 'Procent musi być mniejszy niż 100' : kind === 'down' && amt >= subtotal ? 'Rabat nie może przekroczyć sumy paragonu' : null;
-    var ok = v && !err;
-    var after = NPF.round2(kind === 'down' ? subtotal - amt : subtotal + amt);
-    var apply = function apply() {
-      if (ok) onApply({
-        type: mode,
-        v: num,
-        up: kind === 'up'
-      });
-    };
-    var push = function push(k) {
-      return setV(function (c) {
-        if (k === 'BACK') return c.slice(0, -1);
-        if (k === ',') return c.includes(',') ? c : (c || '0') + ',';
-        if (!/^[0-9]$/.test(k)) return c;
-        var _c$split = c.split(','),
-          _c$split2 = _slicedToArray(_c$split, 2),
-          i = _c$split2[0],
-          d = _c$split2[1];
-        if (d !== undefined) return d.length >= 2 ? c : c + k;
-        if (i.length >= (mode === 'pct' ? 2 : 6)) return c;
-        return (c === '0' ? '' : c) + k;
-      });
-    };
-    useKeys(function (k) {
-      if (/^[0-9]$/.test(k) || k === ',' || k === 'BACK') push(k);else if (k === 'OK' || k === 'RAZEM') apply();else if (k === 'ESC') {
-        if (v) setV('');else onCancel();
-      }
-      return true;
-    }, 30);
-    var presets = mode === 'pct' ? [5, 10, 15, 20, 25, 50] : [5, 10, 20, 50];
-    var word = kind === 'down' ? 'Rabat' : 'Narzut';
-    return /*#__PURE__*/React.createElement(Sheet, {
-      className: "np-docadj",
-      onClose: onCancel
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "np-docadj-l"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "np-amount-title"
-    }, word, " na paragon"), /*#__PURE__*/React.createElement("div", {
-      className: "np-seg full"
-    }, /*#__PURE__*/React.createElement("button", {
-      className: kind === 'down' ? 'on' : '',
-      onClick: function onClick() {
-        return setKind('down');
-      }
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "percent"
-    }), "Rabat"), /*#__PURE__*/React.createElement("button", {
-      className: kind === 'up' ? 'on' : '',
-      onClick: function onClick() {
-        return setKind('up');
-      }
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "trending-up"
-    }), "Narzut")), /*#__PURE__*/React.createElement("div", {
-      className: "np-seg full"
-    }, /*#__PURE__*/React.createElement("button", {
-      className: mode === 'pct' ? 'on' : '',
-      onClick: function onClick() {
-        setMode('pct');
-        setV('');
-      }
-    }, "Procent %"), /*#__PURE__*/React.createElement("button", {
-      className: mode === 'amt' ? 'on' : '',
-      onClick: function onClick() {
-        setMode('amt');
-        setV('');
-      }
-    }, "Kwota z\u0142")), /*#__PURE__*/React.createElement("div", {
-      className: "np-docadj-pre"
-    }, presets.map(function (p) {
-      return /*#__PURE__*/React.createElement("button", {
-        key: p,
-        className: num === p ? 'on' : '',
-        onClick: function onClick() {
-          return setV(String(p));
-        }
-      }, mode === 'pct' ? p + '%' : p + ' zł');
-    })), /*#__PURE__*/React.createElement("div", {
-      className: "np-docadj-sum"
-    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Suma pozycji"), /*#__PURE__*/React.createElement("b", null, NPF.money(subtotal), " z\u0142")), /*#__PURE__*/React.createElement("div", {
-      className: kind === 'down' ? 'neg' : 'pos'
-    }, /*#__PURE__*/React.createElement("span", null, word, mode === 'pct' && num > 0 ? ' ' + String(num).replace('.', ',') + '%' : ''), /*#__PURE__*/React.createElement("b", null, kind === 'down' ? '−' : '+', NPF.money(amt), " z\u0142")), /*#__PURE__*/React.createElement("div", {
-      className: "tot"
-    }, /*#__PURE__*/React.createElement("span", null, "Do zap\u0142aty"), /*#__PURE__*/React.createElement("b", null, NPF.money(ok ? after : subtotal), " z\u0142")))), /*#__PURE__*/React.createElement("div", {
-      className: "np-docadj-r"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: 'np-amount-field' + (err ? ' err' : '')
-    }, v ? /*#__PURE__*/React.createElement("span", null, v) : /*#__PURE__*/React.createElement("span", {
-      className: "ph"
-    }, "0"), /*#__PURE__*/React.createElement("small", null, mode === 'pct' ? '%' : 'zł')), /*#__PURE__*/React.createElement("div", {
-      className: "np-amount-err"
-    }, err || ''), /*#__PURE__*/React.createElement(NumPad, {
-      onKey: push,
-      className: "on-gray"
-    }), /*#__PURE__*/React.createElement("div", {
-      className: "np-sheet-actions"
-    }, current ? /*#__PURE__*/React.createElement("button", {
-      className: "np-btn red",
-      onClick: onRemove
-    }, "Usu\u0144 ", current.up ? 'narzut' : 'rabat') : /*#__PURE__*/React.createElement("button", {
-      className: "np-btn",
-      onClick: onCancel
-    }, "Anuluj"), /*#__PURE__*/React.createElement("button", {
-      className: 'np-btn ' + (kind === 'down' ? 'green' : 'ink'),
-      disabled: !ok,
-      onClick: apply
-    }, "Zastosuj"))));
-  }
-  function RabatSheet(_ref2) {
-    var line = _ref2.line,
-      onApply = _ref2.onApply,
-      onCustom = _ref2.onCustom,
-      onCancel = _ref2.onCancel;
-    var _useState7 = useState(line ? 'line' : 'rcpt'),
-      _useState8 = _slicedToArray(_useState7, 2),
-      scope = _useState8[0],
-      setScope = _useState8[1];
+      scope = _useState2[0],
+      setScope = _useState2[1];
     useKeys(function (k) {
       if (k === 'ESC') onCancel();
       return true;
@@ -262,16 +130,16 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }
     }, "Inna warto\u015B\u0107\u2026")));
   }
-  function SaleScreen(_ref3) {
-    var cashier = _ref3.cashier,
-      tweaks = _ref3.tweaks,
-      onTweak = _ref3.onTweak,
-      onLogout = _ref3.onLogout,
-      onLock = _ref3.onLock,
-      onPowerOff = _ref3.onPowerOff,
-      onRestart = _ref3.onRestart,
-      _ref3$menuOnly = _ref3.menuOnly,
-      menuOnly = _ref3$menuOnly === void 0 ? false : _ref3$menuOnly;
+  function SaleScreen(_ref2) {
+    var cashier = _ref2.cashier,
+      tweaks = _ref2.tweaks,
+      onTweak = _ref2.onTweak,
+      onLogout = _ref2.onLogout,
+      onLock = _ref2.onLock,
+      onPowerOff = _ref2.onPowerOff,
+      onRestart = _ref2.onRestart,
+      _ref2$menuOnly = _ref2.menuOnly,
+      menuOnly = _ref2$menuOnly === void 0 ? false : _ref2$menuOnly;
     var _useStored = useStored('lines', []),
       _useStored2 = _slicedToArray(_useStored, 2),
       lines = _useStored2[0],
@@ -292,14 +160,22 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       _useStored0 = _slicedToArray(_useStored9, 2),
       invoice = _useStored0[0],
       setInvoice = _useStored0[1];
-    var _useStored1 = useStored('stats', STATS0),
+    var _useStored1 = useStored('rcptNote', ''),
       _useStored10 = _slicedToArray(_useStored1, 2),
-      stats = _useStored10[0],
-      setStats = _useStored10[1];
-    var _useStored11 = useStored('pages', DEFAULT_PAGES),
+      rcptNote = _useStored10[0],
+      setRcptNote = _useStored10[1];
+    var _useStored11 = useStored('noteList', ['Odbiór osobisty', 'Zamówienie telefoniczne', 'Klient stały', 'Dostawa do domu']),
       _useStored12 = _slicedToArray(_useStored11, 2),
-      pages = _useStored12[0],
-      setPages = _useStored12[1];
+      noteList = _useStored12[0],
+      setNoteList = _useStored12[1];
+    var _useStored13 = useStored('stats', STATS0),
+      _useStored14 = _slicedToArray(_useStored13, 2),
+      stats = _useStored14[0],
+      setStats = _useStored14[1];
+    var _useStored15 = useStored('pages', DEFAULT_PAGES),
+      _useStored16 = _slicedToArray(_useStored15, 2),
+      pages = _useStored16[0],
+      setPages = _useStored16[1];
     useEffect(function () {
       // jednorazowo: dodaj na panel „Napoje” kafelki towarów akcyzowych (wino, wódka)
       try {
@@ -341,70 +217,70 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         });
       });
     }, []);
-    var _useStored13 = useStored('fpages', NP_DATA.DEFAULT_FPAGES),
-      _useStored14 = _slicedToArray(_useStored13, 2),
-      fpages = _useStored14[0],
-      setFPages = _useStored14[1];
-    var _useStored15 = useStored('fpage', 0),
-      _useStored16 = _slicedToArray(_useStored15, 2),
-      fpage = _useStored16[0],
-      setFPage = _useStored16[1];
-    var _useStored17 = useStored('kbRow', NP_DATA.DEFAULT_KBROW),
+    var _useStored17 = useStored('fpages', NP_DATA.DEFAULT_FPAGES),
       _useStored18 = _slicedToArray(_useStored17, 2),
-      kbRow = _useStored18[0],
-      setKbRow = _useStored18[1];
-    var _useStored19 = useStored('fKey', NP_DATA.DEFAULT_FKEY),
+      fpages = _useStored18[0],
+      setFPages = _useStored18[1];
+    var _useStored19 = useStored('fpage', 0),
       _useStored20 = _slicedToArray(_useStored19, 2),
-      fKey = _useStored20[0],
-      setFKey = _useStored20[1];
-    var _useStored21 = useStored('qPay', NP_DATA.DEFAULT_QPAY),
+      fpage = _useStored20[0],
+      setFPage = _useStored20[1];
+    var _useStored21 = useStored('kbRow', NP_DATA.DEFAULT_KBROW),
       _useStored22 = _slicedToArray(_useStored21, 2),
-      qPay = _useStored22[0],
-      setQPay = _useStored22[1];
+      kbRow = _useStored22[0],
+      setKbRow = _useStored22[1];
+    var _useStored23 = useStored('fKey', NP_DATA.DEFAULT_FKEY),
+      _useStored24 = _slicedToArray(_useStored23, 2),
+      fKey = _useStored24[0],
+      setFKey = _useStored24[1];
+    var _useStored25 = useStored('qPay', NP_DATA.DEFAULT_QPAY),
+      _useStored26 = _slicedToArray(_useStored25, 2),
+      qPay = _useStored26[0],
+      setQPay = _useStored26[1];
     // ── tryb gastro: rachunki otwarte (ze stolikiem i bez), aktywny rachunek = bieżący paragon ──
     var gset = useNpSettings();
     var gastroOn = !!gset.gastroTryb;
     var gView = gset.gastroWidok === 'Plan sali' ? 'plan' : 'grid';
     var gTables = Math.max(1, Math.min(96, +gset.gastroStoliki || 20));
-    var _useStored23 = useStored('bills', []),
-      _useStored24 = _slicedToArray(_useStored23, 2),
-      bills = _useStored24[0],
-      setBills = _useStored24[1];
-    var _useStored25 = useStored('curBill', null),
-      _useStored26 = _slicedToArray(_useStored25, 2),
-      curBill = _useStored26[0],
-      setCurBill = _useStored26[1];
-    var _useStored27 = useStored('gRow', NP_DATA.DEFAULT_GROW),
+    var _useStored27 = useStored('bills', []),
       _useStored28 = _slicedToArray(_useStored27, 2),
-      gRow = _useStored28[0],
-      setGRow = _useStored28[1];
-    var _useStored29 = useStored('gPlan', null),
+      bills = _useStored28[0],
+      setBills = _useStored28[1];
+    var _useStored29 = useStored('curBill', null),
       _useStored30 = _slicedToArray(_useStored29, 2),
-      gPlan = _useStored30[0],
-      setGPlan = _useStored30[1];
-    var _useStored31 = useStored('gNames', {}),
+      curBill = _useStored30[0],
+      setCurBill = _useStored30[1];
+    var _useStored31 = useStored('gRow', NP_DATA.DEFAULT_GROW),
       _useStored32 = _slicedToArray(_useStored31, 2),
-      gNames = _useStored32[0],
-      setGNames = _useStored32[1];
+      gRow = _useStored32[0],
+      setGRow = _useStored32[1];
+    var _useStored33 = useStored('gPlan', null),
+      _useStored34 = _slicedToArray(_useStored33, 2),
+      gPlan = _useStored34[0],
+      setGPlan = _useStored34[1];
+    var _useStored35 = useStored('gNames', {}),
+      _useStored36 = _slicedToArray(_useStored35, 2),
+      gNames = _useStored36[0],
+      setGNames = _useStored36[1];
     var planN = useMemo(function () {
       return NP_PLAN.normPlan(gPlan, gTables);
     }, [gPlan, gTables]);
-    var _useState9 = useState(null),
-      _useState0 = _slicedToArray(_useState9, 2),
-      planEdit = _useState0[0],
-      setPlanEdit = _useState0[1]; // indeks sali w edycji planu
-    var _useState1 = useState(false),
-      _useState10 = _slicedToArray(_useState1, 2),
-      moveMode = _useState10[0],
-      setMoveMode = _useState10[1]; // false | { id } — przenoszenie rachunku na inny stolik
-    var _useStored33 = useStored('billsX', []),
-      _useStored34 = _slicedToArray(_useStored33, 2),
-      billsX = _useStored34[0],
-      setBillsX = _useStored34[1]; // anulowane paragony zaparkowane
-    var _useStored35 = useStored('parkNo', 0),
-      _useStored36 = _slicedToArray(_useStored35, 2),
-      parkNo = _useStored36[0],
-      setParkNo = _useStored36[1];
+    var _useState3 = useState(null),
+      _useState4 = _slicedToArray(_useState3, 2),
+      planEdit = _useState4[0],
+      setPlanEdit = _useState4[1]; // indeks sali w edycji planu
+    var _useState5 = useState(false),
+      _useState6 = _slicedToArray(_useState5, 2),
+      moveMode = _useState6[0],
+      setMoveMode = _useState6[1]; // false | { id } — przenoszenie rachunku na inny stolik
+    var _useStored37 = useStored('billsX', []),
+      _useStored38 = _slicedToArray(_useStored37, 2),
+      billsX = _useStored38[0],
+      setBillsX = _useStored38[1]; // anulowane paragony zaparkowane
+    var _useStored39 = useStored('parkNo', 0),
+      _useStored40 = _slicedToArray(_useStored39, 2),
+      parkNo = _useStored40[0],
+      setParkNo = _useStored40[1];
     var parkNoRef = useRef(parkNo);
     useEffect(function () {
       // rachunki sprzed numeracji: kolejne numery wg czasu otwarcia
@@ -450,10 +326,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     billsRef.current = bills;
     var curRef = useRef(curBill);
     curRef.current = curBill;
-    var _useState11 = useState(false),
-      _useState12 = _slicedToArray(_useState11, 2),
-      fOpen = _useState12[0],
-      setFOpen = _useState12[1]; // false | 'run' | 'edit'
+    var _useState7 = useState(false),
+      _useState8 = _slicedToArray(_useState7, 2),
+      fOpen = _useState8[0],
+      setFOpen = _useState8[1]; // false | 'run' | 'edit'
     useEffect(function () {
       if (fpages.some(function (p) {
         return /^Funkcje F/.test(p.name);
@@ -465,27 +341,27 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         });
       });
     }, []);
-    var _useStored37 = useStored('favs', DEFAULT_FAVS),
-      _useStored38 = _slicedToArray(_useStored37, 2),
-      favs = _useStored38[0],
-      setFavs = _useStored38[1];
-    var _useStored39 = useStored('tab', 'panele'),
-      _useStored40 = _slicedToArray(_useStored39, 2),
-      tab = _useStored40[0],
-      setTab = _useStored40[1];
-    var _useStored41 = useStored('page', 0),
+    var _useStored41 = useStored('favs', DEFAULT_FAVS),
       _useStored42 = _slicedToArray(_useStored41, 2),
-      page = _useStored42[0],
-      setPage = _useStored42[1];
+      favs = _useStored42[0],
+      setFavs = _useStored42[1];
+    var _useStored43 = useStored('tab', 'panele'),
+      _useStored44 = _slicedToArray(_useStored43, 2),
+      tab = _useStored44[0],
+      setTab = _useStored44[1];
+    var _useStored45 = useStored('page', 0),
+      _useStored46 = _slicedToArray(_useStored45, 2),
+      page = _useStored46[0],
+      setPage = _useStored46[1];
     // Role: manager i serwisant bez sprzedaży. Menu na pełnym ekranie (Tweak) zakrywa paragon; w przeciwnym razie paragon jest wyszarzony
     var noSale = !menuOnly && !!cashier && NO_SALE.includes(cashier.level);
     var menuFull = tweaks.menuFull !== false;
     var menuFullOn = menuFull && (menuOnly || tab === 'menu' || noSale && tab === 'towary');
     var rcptOff = noSale || !menuOnly && tab === 'menu';
-    var _useState13 = useState(BUF0),
-      _useState14 = _slicedToArray(_useState13, 2),
-      buf = _useState14[0],
-      setBufState = _useState14[1];
+    var _useState9 = useState(BUF0),
+      _useState0 = _slicedToArray(_useState9, 2),
+      buf = _useState0[0],
+      setBufState = _useState0[1];
     var bufRef = useRef(buf);
     var setBuf = function setBuf(patch) {
       var cur = bufRef.current;
@@ -499,42 +375,42 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       linesRef.current = next;
       setLines(next);
     };
+    var _useState1 = useState(null),
+      _useState10 = _slicedToArray(_useState1, 2),
+      lastEvent = _useState10[0],
+      setLastEventRaw = _useState10[1];
+    var _useState11 = useState(null),
+      _useState12 = _slicedToArray(_useState11, 2),
+      selId = _useState12[0],
+      setSelId = _useState12[1];
+    var _useState13 = useState(false),
+      _useState14 = _slicedToArray(_useState13, 2),
+      edit = _useState14[0],
+      setEdit = _useState14[1];
     var _useState15 = useState(null),
       _useState16 = _slicedToArray(_useState15, 2),
-      lastEvent = _useState16[0],
-      setLastEventRaw = _useState16[1];
+      editSlot = _useState16[0],
+      setEditSlot = _useState16[1];
     var _useState17 = useState(null),
       _useState18 = _slicedToArray(_useState17, 2),
-      selId = _useState18[0],
-      setSelId = _useState18[1];
-    var _useState19 = useState(false),
+      prodEdit = _useState18[0],
+      setProdEdit = _useState18[1]; // { plu } | { plu: null } = nowy
+    var _useState19 = useState(null),
       _useState20 = _slicedToArray(_useState19, 2),
-      edit = _useState20[0],
-      setEdit = _useState20[1];
+      sheet = _useState20[0],
+      setSheet = _useState20[1];
     var _useState21 = useState(null),
       _useState22 = _slicedToArray(_useState21, 2),
-      editSlot = _useState22[0],
-      setEditSlot = _useState22[1];
+      toast = _useState22[0],
+      setToast = _useState22[1];
     var _useState23 = useState(null),
       _useState24 = _slicedToArray(_useState23, 2),
-      prodEdit = _useState24[0],
-      setProdEdit = _useState24[1]; // { plu } | { plu: null } = nowy
-    var _useState25 = useState(null),
+      flashId = _useState24[0],
+      setFlashId = _useState24[1];
+    var _useState25 = useState(false),
       _useState26 = _slicedToArray(_useState25, 2),
-      sheet = _useState26[0],
-      setSheet = _useState26[1];
-    var _useState27 = useState(null),
-      _useState28 = _slicedToArray(_useState27, 2),
-      toast = _useState28[0],
-      setToast = _useState28[1];
-    var _useState29 = useState(null),
-      _useState30 = _slicedToArray(_useState29, 2),
-      flashId = _useState30[0],
-      setFlashId = _useState30[1];
-    var _useState31 = useState(false),
-      _useState32 = _slicedToArray(_useState31, 2),
-      scanFlash = _useState32[0],
-      setScanFlash = _useState32[1];
+      scanFlash = _useState26[0],
+      setScanFlash = _useState26[1];
     var seq = useRef(0);
     var timers = useRef([]);
     var toastT = useRef(null);
@@ -546,10 +422,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var later = function later(fn, ms) {
       return timers.current.push(setTimeout(fn, ms));
     };
-    var _ref4 = tweaks.grid === '5x6' ? [5, 6] : [6, 5],
-      _ref5 = _slicedToArray(_ref4, 2),
-      gc = _ref5[0],
-      gr = _ref5[1];
+    var _ref3 = tweaks.grid === '5x6' ? [5, 6] : [6, 5],
+      _ref4 = _slicedToArray(_ref3, 2),
+      gc = _ref4[0],
+      gr = _ref4[1];
     // strony stolików (tryb gastro) są na końcu Paneli: siatka po 24 stoliki albo jedna strona na salę
     var gN = gastroOn ? gView === 'plan' ? planN.rooms.length : Math.max(1, Math.ceil(gTables / 24)) : 0;
     var pageAll = Math.min(page, pages.length + gN - 1);
@@ -749,7 +625,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       if (q == null) q = 1;
       var prec = NP_DB.precOf(p);
       if (Math.abs(q / prec - Math.round(q / prec)) > 1e-6) {
-        err(prec >= 1 ? "\u201E".concat(p.name, "\u201D sprzedawany jest tylko w ca\u0142ych ilo\u015Bciach") : "\u201E".concat(p.name, "\u201D: dok\u0142adno\u015B\u0107 sprzeda\u017Cy ").concat(String(prec).replace('.', ','), " ").concat(p.unit));
+        err(prec >= 1 ? "\u201E".concat(p.name, "\u201D sprzedawany jest tylko w ca\u0142ych ilo\u015Bciach") : "\u201E".concat(p.name, "\u201D: dok\u0142adno\u015B\u0107 sprzeda\u017Cy ").concat(String(prec), " ").concat(p.unit));
         return;
       }
       if (priceOv != null && !bufRef.current.codeOv) {
@@ -888,10 +764,13 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
             v: q0 * (xc.mult || 1),
             unit: 'szt'
           }
-        }, xc.price > 0 && bufRef.current.priceOv == null ? {
-          priceOv: xc.price,
-          codeOv: true
-        } : {}));
+        }, function () {
+          var pr = xc.lvl && xc.lvl !== 'own' ? +p[xc.lvl] : xc.price;
+          return pr > 0 && bufRef.current.priceOv == null ? {
+            priceOv: pr,
+            codeOv: true
+          } : {};
+        }()));
       }
       sell(p, src, c);
     };
@@ -941,7 +820,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       clearBuf();
       setLastEvent({
         kind: 'info',
-        text: "".concat(pct > 0 ? "Rabat ".concat(pct, "%") : "Narzut ".concat(-pct, "%"), " \xB7 ").concat(t.name)
+        text: "Rabat ".concat(pct, "% \xB7 ").concat(t.name)
       });
     };
     var storno = function storno(id) {
@@ -974,6 +853,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       commit([]);
       setRcptDisc(null);
       setNip('');
+      setRcptNote('');
       setInvoice(false);
       setSelId(null);
       setReceiptNo(function (n) {
@@ -1120,6 +1000,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       clearBuf();
       setRcptDisc(null);
       setNip('');
+      setRcptNote('');
       setInvoice(false);
     };
     var loadBill = function loadBill(b) {
@@ -1400,6 +1281,13 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       var mode = bufRef.current.mode;
       var lines = linesRef.current;
       switch (id) {
+        case 'szybkiAsort':
+          setSheet({
+            type: 'quickGroup',
+            props: {},
+            k: ++seq.current
+          });
+          return;
         case 'rabat10':
           applyAdj(10);
           return;
@@ -1429,8 +1317,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
             return;
           }
           setSheet({
-            type: 'docadj',
-            props: {},
+            type: 'docOpts',
+            props: {
+              tab: 'rabat'
+            },
             k: ++seq.current
           });
           return;
@@ -1445,37 +1335,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           });
           setLastEvent({
             kind: 'info',
-            text: 'Rabat 10,00 zł na paragon'
+            text: 'Rabat 10.00 zł na paragon'
           });
           return;
-        case 'narzut':
-          {
-            var t = target();
-            if (!t) {
-              err('Brak pozycji na paragonie');
-              return;
-            }
-            var _v = Math.round(NPF.parseNum(e));
-            if (e && _v > 0 && _v < 100) {
-              applyAdj(-_v);
-              return;
-            }
-            amount({
-              title: 'Narzut na pozycję',
-              desc: t.name,
-              mode: 'percent',
-              confirmLabel: 'Dodaj narzut',
-              confirmTone: 'ink',
-              validate: function validate(x) {
-                return +x > 0 && +x < 100 ? null : 'Wartość od 1 do 99%';
-              },
-              onConfirm: function onConfirm(x) {
-                close();
-                applyAdj(-x, t.id);
-              }
-            });
-            return;
-          }
         case 'storno':
           storno(selId);
           return;
@@ -1518,23 +1380,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           });
           return;
         case 'nip':
-          amount({
-            title: 'NIP nabywcy',
-            desc: 'Zostanie wydrukowany na paragonie',
-            mode: 'digits',
-            maxLen: 10,
-            initial: nip,
-            format: NPF.nip,
-            suffix: '',
-            confirmLabel: 'Zapisz NIP',
-            validate: function validate(v) {
-              return v.length === 10 ? null : 'NIP ma 10 cyfr';
+          setSheet({
+            type: 'docOpts',
+            props: {
+              tab: 'nip'
             },
-            onConfirm: function onConfirm(v) {
-              close();
-              setNip(v);
-              say('NIP nabywcy dodany do paragonu', 'ok', 'check');
-            }
+            k: ++seq.current
           });
           return;
         case 'faktura':
@@ -2204,7 +2055,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           dialog({
             tone: 'info',
             title: NP_BRAND.full,
-            rows: [['Wersja aplikacji', '2.4.0 · prototyp'], ['Ekran', '10,1″ · 1280 × 800'], ['Sklep', SHOP.name], [SHOP.kasa, SHOP.nip]],
+            rows: [['Wersja aplikacji', '2.4.0 · prototyp'], ['Ekran', '10.1″ · 1280 × 800'], ['Sklep', SHOP.name], [SHOP.kasa, SHOP.nip]],
             actions: [{
               label: 'OK',
               primary: true,
@@ -2244,8 +2095,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         if (sl) onTile(sl);else err("Klawisz F".concat(k, " nie ma przypisanej funkcji"));
         return true;
       }
-      if (fMode && (k === '0' || k === ',')) return true;
-      if (/^[0-9]$/.test(k) || k === ',') {
+      if (fMode && (k === '0' || k === '.')) return true;
+      if (/^[0-9]$/.test(k) || k === '.') {
         setBuf(function (b) {
           return {
             entry: appendEntry(b.entry, k)
@@ -2274,7 +2125,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
             setBuf({
               qty: {
                 v: v,
-                unit: entry.includes(',') ? 'kg' : 'szt'
+                unit: entry.includes('.') ? 'kg' : 'szt'
               },
               entry: ''
             });
@@ -2282,13 +2133,13 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           break;
         case 'CENA':
           if (entry) {
-            var _v2 = NPF.parseNum(entry);
-            if (!(_v2 > 0)) {
+            var _v = NPF.parseNum(entry);
+            if (!(_v > 0)) {
               err('Nieprawidłowa cena');
               break;
             }
             setBuf({
-              priceOv: _v2,
+              priceOv: _v,
               entry: ''
             });
           } else err('Wpisz nową cenę, a potem naciśnij CENA');
@@ -2330,6 +2181,16 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       if (slot.t === 'p') {
         var p = NP_DB.get(slot.id);
         if (p) sell(p, 'tile');
+        return;
+      }
+      if (slot.id === 'szybkiAsort') {
+        setSheet({
+          type: 'quickGroup',
+          props: {
+            arg: slot.arg
+          },
+          k: ++seq.current
+        });
         return;
       }
       _runFunc(slot.id);
@@ -2549,27 +2410,28 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           }
         });
       }
-      if (type === 'docadj') {
-        return /*#__PURE__*/React.createElement(DocAdjSheet, {
+      if (type === 'docOpts') {
+        return /*#__PURE__*/React.createElement(DocOptsSheet, {
           key: k,
+          tab: props.tab,
+          count: lines.length,
           subtotal: subtotal,
-          current: rcptDisc,
+          disc: rcptDisc,
+          nip: nip,
+          note: rcptNote,
+          noteList: noteList,
+          setNoteList: setNoteList,
           onCancel: close,
-          onRemove: function onRemove() {
+          onApply: function onApply(r) {
             close();
-            setRcptDisc(null);
-            setLastEvent({
-              kind: 'storno',
-              text: (rcptDisc && rcptDisc.up ? 'Narzut' : 'Rabat') + ' na paragon usunięty'
-            });
-          },
-          onApply: function onApply(d) {
-            close();
-            setRcptDisc(d);
-            setLastEvent({
-              kind: 'info',
-              text: "".concat(d.up ? 'Narzut' : 'Rabat', " ").concat(d.type === 'pct' ? String(d.v).replace('.', ',') + '%' : M(d.v) + ' zł', " na paragon")
-            });
+            setRcptDisc(r.disc);
+            setNip(r.nip);
+            setRcptNote(r.note);
+            var ch = [];
+            if (JSON.stringify(r.disc) !== JSON.stringify(rcptDisc)) ch.push(r.disc ? r.disc.up ? 'narzut' : 'rabat' : rcptDisc && rcptDisc.up ? 'narzut usunięty' : 'rabat usunięty');
+            if (r.nip !== nip) ch.push(r.nip ? 'NIP' : 'NIP usunięty');
+            if (r.note !== rcptNote) ch.push(r.note ? 'notatka' : 'notatka usunięta');
+            if (ch.length) say('Paragon: ' + ch.join(', '), 'ok', 'check');
           }
         });
       }
@@ -2588,6 +2450,17 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           }
         });
       }
+      if (type === 'quickGroup') return /*#__PURE__*/React.createElement(QuickGroupSheet, {
+        key: k,
+        arg: props.arg,
+        favs: favs,
+        counts: counts,
+        onCancel: close,
+        onSell: function onSell(x) {
+          close();
+          sell(x, 'tile');
+        }
+      });
       if (type === 'lineNote') {
         var _line = lines.find(function (x) {
           return x.id === props.lineId;
@@ -2681,8 +2554,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var clearRcptDiscS = useCallback(function () {
       return setRcptDisc(null);
     }, []);
-    var openDocAdjS = useEvent(function () {
-      return _runFunc('rabatDok');
+    var openDocMenuS = useEvent(function () {
+      return setSheet({
+        type: 'docOpts',
+        props: {},
+        k: ++seq.current
+      });
     });
     var toggleSel = useCallback(function (id) {
       return setSelId(function (x) {
@@ -2856,10 +2733,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         name: "menu"
       })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Menu kasy"), /*#__PURE__*/React.createElement("small", null, "Bez logowania kasjera"))), /*#__PURE__*/React.createElement("div", {
         className: "np-lines-card np-menuinfo"
-      }, [['Sklep', SHOP.name], ['Adres', SHOP.addr], ['Kasa', SHOP.kasa + ' · ' + SHOP.nip], ['Data', NPF.dateFull(now)], ['NoviCloud', 'Połączono'], ['Drukarka', 'Gotowa'], ['Wersja', '2.4.0 · prototyp']].map(function (_ref6) {
-        var _ref7 = _slicedToArray(_ref6, 2),
-          k = _ref7[0],
-          v = _ref7[1];
+      }, [['Sklep', SHOP.name], ['Adres', SHOP.addr], ['Kasa', SHOP.kasa + ' · ' + SHOP.nip], ['Data', NPF.dateFull(now)], ['NoviCloud', 'Połączono'], ['Drukarka', 'Gotowa'], ['Wersja', '2.4.0 · prototyp']].map(function (_ref5) {
+        var _ref6 = _slicedToArray(_ref5, 2),
+          k = _ref6[0],
+          v = _ref6[1];
         return /*#__PURE__*/React.createElement("div", {
           key: k,
           className: "np-menuinfo-row"
@@ -2963,8 +2840,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       rdAmt: rdAmt,
       rcptDisc: rcptDisc,
       onClearRcptDisc: clearRcptDiscS,
-      onDocAdj: openDocAdjS,
+      onDocMenu: openDocMenuS,
       nip: nip,
+      note: rcptNote,
       invoice: invoice,
       scanFlash: scanFlash,
       buf: _objectSpread(_objectSpread({}, buf), {}, {

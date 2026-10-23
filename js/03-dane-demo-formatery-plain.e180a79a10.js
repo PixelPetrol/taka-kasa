@@ -98,7 +98,7 @@
   const GTU = ['(brak)'].concat(Array.from({ length: 13 }, (_, i) => 'GTU_' + String(i + 1).padStart(2, '0')));
   const UNITS = ['szt', 'kg', 'l', 'm', 'opak'];
   const UNIT_PREC = { szt: 1, kg: 0.001, l: 0.001, m: 0.01, opak: 1 };
-  const PRECS = [['jm', 'zdefiniowana w jednostce miary'], ['1', '1 — tylko całe sztuki'], ['0.1', '0,1'], ['0.01', '0,01'], ['0.001', '0,001 — towar na wagę']];
+  const PRECS = [['jm', 'zdefiniowana w jednostce miary'], ['1', '1 — tylko całe sztuki'], ['0.1', '0.1'], ['0.01', '0.01'], ['0.001', '0.001 — towar na wagę']];
   const withDefaults = (p) => Object.assign({
     priceH: '', priceN: '', priceD: '', type: p.group === 'kaucje' ? 'Opakowanie' : 'Towar', priceMode: 'Otwarta', pkwiu: '', gtu: '(brak)',
     prec: 'jm', pack: null, packN: 1, sup: null, codes: [], desc: ['', '', '', '', ''], printers: { kasa: false, e1: false, e2: false, e3: false }, attrs: '', stock: 0,
@@ -211,9 +211,9 @@
   const FUNCS = [
     { id: 'rabat10', f: 1, name: 'Rabat 10%', tile: 'Rabat\n10%', icon: 'percent', color: 'red', cat: 'Rabaty' },
     { id: 'rabatLista', f: 2, name: 'Rabat z listy', tile: 'Rabat\nz listy', icon: 'badge-percent', color: 'red', cat: 'Rabaty' },
-    { id: 'rabatDok', f: 28, name: 'Rabat / narzut na paragon', tile: 'Rabat\nna paragon', icon: 'badge-percent', color: 'red', cat: 'Rabaty' },
+    { id: 'rabatDok', f: 28, name: 'Rabat na paragon', tile: 'Rabat\nna paragon', icon: 'badge-percent', color: 'red', cat: 'Rabaty' },
     { id: 'rabat10zl', f: 3, name: 'Rabat 10 zł na paragon', tile: 'Rabat\n10 zł', icon: 'tag', color: 'red', cat: 'Rabaty' },
-    { id: 'narzut', f: 4, name: 'Narzut %', tile: 'Narzut', icon: 'trending-up', color: 'red', cat: 'Rabaty' },
+    { id: 'szybkiAsort', f: 4, name: 'Szybki asortyment', tile: 'Szybki\nasortyment', icon: 'layout-grid', color: 'teal', cat: 'Towar', arg: 'group' },
     { id: 'storno', f: 5, name: 'Storno pozycji', tile: 'Storno', icon: 'undo-2', color: 'graphite', cat: 'Paragon' },
     { id: 'anuluj', f: 6, name: 'Anuluj paragon', tile: 'Anuluj\nparagon', icon: 'circle-x', color: 'graphite', cat: 'Paragon' },
     { id: 'nip', f: 7, name: 'NIP nabywcy', tile: 'NIP\nnabywcy', icon: 'file-text', color: 'graphite', cat: 'Paragon' },
@@ -246,12 +246,13 @@
     { id: 'gLista', f: 36, name: 'Zaparkowane paragony', tile: 'Zaparko-\nwane', icon: 'clipboard-list', color: 'teal', cat: 'Paragon' },
     { id: 'gKuchnia', f: 35, name: 'Wyślij do kuchni', tile: 'Do kuchni', icon: 'chef-hat', color: 'red', cat: 'Gastro' },
   ];
-  const TILE_COLORS = ['gray', 'red', 'orange', 'green', 'blue', 'teal', 'graphite'];
+  const TILE_COLORS = ['gray', 'red', 'orange', 'green', 'blue', 'teal', 'pink', 'lilac', 'graphite'];
 
   const P = (id) => ({ t: 'p', id: String(id) });
   const F = (id) => ({ t: 'f', id });
   const fill = (a) => { const r = a.slice(0, 30); while (r.length < 30) r.push(null); return r; };
   const _ = null;
+  const PRE = (window.NP_PRESET && window.NP_PRESET.layout) || {}; // układ z prezentacji (nextpro-preset.js)
   const DEFAULT_PAGES = [
     { name: 'Szybkie', slots: fill([
       F('rabat10'), F('rabatLista'), F('skan'), F('waga'), F('gotowka'), F('karta'),
@@ -265,15 +266,16 @@
     { name: 'Warzywa, owoce, mięso', slots: fill([P(30), P(31), P(32), P(33), P(34), P(35), P(36), P(37), P(38), P(39), _, _, P(60), P(61), P(62), P(63), P(64)]) },
     { name: 'Strona 5', slots: fill([]) },
   ];
-  const DEFAULT_FAVS = ['1', '3', '10', '14', '30', '50', '23', '74'];
+  const DEFAULT_FAVS = PRE.favs || ['1', '3', '10', '14', '30', '50', '23', '74'];
   const DEFAULT_FPAGES = [
     { name: 'Funkcje', slots: fill(FUNCS.map((f) => F(f.id))) },
     { name: 'Funkcje · strona 2', slots: fill([]) },
   ];
-  const DEFAULT_KBROW = [F('storno'), F('rabatLista'), F('waga'), F('cena'), F('gotowka'), F('karta')];
-  const DEFAULT_QPAY = [F('gotowka'), F('karta'), F('blik')];
+  if (PRE.pages) DEFAULT_PAGES.splice(0, DEFAULT_PAGES.length, ...PRE.pages);
+  const DEFAULT_KBROW = PRE.kbRow || [F('storno'), F('rabatLista'), F('waga'), F('cena'), F('gotowka'), F('karta')];
+  const DEFAULT_QPAY = PRE.qPay || [F('gotowka'), F('karta'), F('blik')];
   // Klawisz F → 3×3 (układ jak blok cyfr 7-8-9 / 4-5-6 / 1-2-3)
-  const DEFAULT_FKEY = [F('storno'), F('rabatLista'), F('anuluj'), F('nip'), F('cena'), F('zwrot'), F('szuflada'), F('kopia'), F('kasjer')];
+  const DEFAULT_FKEY = PRE.fKey || [F('storno'), F('rabatLista'), F('anuluj'), F('nip'), F('cena'), F('zwrot'), F('szuflada'), F('kopia'), F('kasjer')];
   const DEFAULT_GROW = [F('gPodziel'), F('gParkuj'), F('gLista'), F('gPrzenies'), F('gOpisz'), F('gKuchnia')];
 
   // Menu — układ jak w kasie NEXT (NoviCloud / Administracja / Programowanie / Raporty)
@@ -341,11 +343,12 @@
   // Ustawienia (Administracja › Ustawienia) — typ: toggle | num | select | info
   const SETTINGS = [
     { id: 'ogolne', label: 'Parametry ogólne', icon: 'sliders-horizontal', color: 'graphite', params: [
-      { id: 'theme', label: 'Motyw', type: 'select', def: 'Jasny', options: ['Jasny', 'Ciemny'], desc: 'Jasny (domyślnie) – jasne tło, najlepiej czytelny w dobrze oświetlonym sklepie. Ciemny – ciemne tło i jasny tekst; mniej razi wieczorem i w słabym świetle.' },
+      { id: 'theme', label: 'Motyw', type: 'select', def: 'Jasny', options: ['Jasny', 'Ciemny', 'Beauty (róż)'], desc: 'Jasny (domyślnie) – jasne tło, najlepiej czytelny w dobrze oświetlonym sklepie. Ciemny – ciemne tło i jasny tekst; mniej razi wieczorem i w słabym świetle. Beauty (róż) – jasny, różowy motyw dla salonów i sklepów kosmetycznych.' },
       { id: 'uiScale', label: 'Wielkość interfejsu', type: 'select', def: '100% (standard)', options: ['90% — więcej miejsca', '100% (standard)', '110%', '120%'], desc: 'Powiększa lub pomniejsza cały ekran: kafelki, klawisze, teksty i odstępy razem, w tych samych proporcjach. Przy większych wartościach mieści się mniej pozycji naraz.' },
-      { id: 'font', label: 'Czcionka', type: 'select', def: 'Geist', options: ['Geist', 'Roboto'], desc: 'Krój pisma całego interfejsu. Geist (domyślnie) – nowoczesny, wąski. Roboto – klasyczny krój Androida, znany z kas NEXT.' },
-      { id: 'bigText', label: 'Wielkość tekstu', type: 'select', def: 'Standardowa', options: ['Standardowa', 'Powiększona'], desc: 'Powiększona – większe napisy na paragonie, liście towarów, przycisku Razem i na pozostałych ekranach. Układ ekranu i wysokość wierszy zostają bez zmian, długie nazwy są skracane wielokropkiem.' },
+      { id: 'font', label: 'Czcionka', type: 'select', def: 'Roboto', options: ['Geist', 'Roboto'], desc: 'Krój pisma całego interfejsu. Roboto (domyślnie) – klasyczny krój Androida, znany z kas NEXT. Geist – nowoczesny, wąski.' },
+      { id: 'bigText', label: 'Wielkość tekstu', type: 'select', def: 'Powiększona', options: ['Standardowa', 'Powiększona'], desc: 'Powiększona – większe napisy na paragonie, liście towarów, przycisku Razem i na pozostałych ekranach. Układ ekranu i wysokość wierszy zostają bez zmian, długie nazwy są skracane wielokropkiem.' },
       { id: 'hlLast', label: 'Podświetlenie ostatniej pozycji', type: 'select', def: 'Wypełnienie', options: ['Brak', 'Wypełnienie', 'Obramowanie'], desc: 'Jak wyróżniać ostatnio nabitą pozycję na paragonie: Brak, Wypełnienie (delikatnie pomarańczowe tło) albo Obramowanie (pomarańczowa ramka).' },
+      { id: 'roundScreen', label: 'Zaokrąglone rogi ekranu', type: 'select', def: 'Włączone', options: ['Włączone', 'Wyłączone'], desc: 'Ekran kasy ma proste rogi. Włączone (domyślnie) – rogi interfejsu są zaokrąglone tak jak okienka, a narożniki wypełnia czerń, więc nie odróżniają się od ramki.' },
       { id: 'qtyKeys', label: 'Przyciski − / + na paragonie', type: 'select', def: 'Płytki', options: ['Płytki', 'Pigułki'], desc: 'Płytki (domyślnie) – przyciski w kolorze pozycji, oddzielone wąską szczeliną. Pigułki – zaokrąglone przyciski wewnątrz pozycji.' },
       { id: 'nrKasy', label: 'Numer kasy', type: 'num', def: 1, max: 3, desc: 'Numer kasy, pod jakim będą zapisywane dokumenty w bazie. Służy również do identyfikacji kasy dla zewnętrznych programów.' },
       { id: 'prodImages', label: 'Obrazki towarów (eksperymentalne)', type: 'toggle', def: false, desc: 'WYŁ (domyślnie) – kafelki pokazują piktogramy. WŁ – w karcie towaru można przypisać obrazek, a w programowaniu kafelka wybrać, czy kafelek ma pokazywać obrazek zamiast piktogramu. Tymczasowe zdjęcia przykładowe z internetu.' },
@@ -405,9 +408,9 @@
     vat: { title: 'Stawki VAT', rows: [['A', '23%'], ['B', '8%'], ['C', '5%'], ['D', '0%'], ['E', 'zw.'], ['F', 'nieaktywna'], ['G', 'nieaktywna']] },
     units: { title: 'Jednostki miary', rows: [['szt', 'Sztuka', 'ilość całkowita'], ['kg', 'Kilogram', '3 miejsca po przecinku'], ['l', 'Litr', '3 miejsca po przecinku'], ['m', 'Metr', '2 miejsca po przecinku'], ['opak', 'Opakowanie', 'ilość całkowita']] },
     payments: { title: 'Formy płatności', rows: [['Gotówka', 'aktywna'], ['Karta płatnicza', 'aktywna'], ['BLIK', 'aktywna'], ['Bon', 'aktywna'], ['Przelew', 'aktywna'], ['Kredyt', 'nieaktywna']] },
-    currencies: { title: 'Waluty', rows: [['PLN', 'waluta podstawowa'], ['EUR', 'kurs 4,32'], ['USD', 'kurs 3,98']] },
+    currencies: { title: 'Waluty', rows: [['PLN', 'waluta podstawowa'], ['EUR', 'kurs 4.32'], ['USD', 'kurs 3.98']] },
     scalecodes: { title: 'Formaty kodów wagowych', rows: [['Prefiks 20', 'PLU 5 cyfr + waga', '20 PPPPP WWWWW K'], ['Prefiks 21', 'PLU 5 cyfr + cena', '21 PPPPP CCCCC K'], ['Prefiks 29', 'PLU 5 cyfr + ilość', '29 PPPPP IIIII K']] },
-    gastro: { title: 'Usługi gastro', rows: [['Na miejscu', 'VAT 8%'], ['Na wynos', 'VAT 5%'], ['Dostawa', 'VAT 8% · opłata 9,99 zł']] },
+    gastro: { title: 'Usługi gastro', rows: [['Na miejscu', 'VAT 8%'], ['Na wynos', 'VAT 5%'], ['Dostawa', 'VAT 8% · opłata 9.99 zł']] },
     clients: { title: 'Klienci', rows: [['Kowalski Budownictwo sp. z o.o.', 'NIP 521-301-77-12', 'ul. Polna 3, Warszawa'], ['Apteka Zdrowie', 'NIP 113-245-00-91', 'ul. Długa 15, Warszawa'], ['Jan Nowak', 'karta 9900 0001', 'klient lojalnościowy']] },
     profiles: { title: 'Profile uprawnień', rows: [['Kierownik', 'pełne uprawnienia', 'raporty, programowanie, storno, rabaty'], ['Kasjer', 'sprzedaż', 'zwroty do 50 zł, rabaty do 10%'], ['Praktykant', 'sprzedaż', 'bez rabatów i storna']] },
     cards: { title: 'Formaty kart rabatowych', rows: [['Karta stałego klienta', 'rabat 5%', 'prefiks 9900'], ['Karta pracownicza', 'rabat 10%', 'prefiks 9910']] },
@@ -460,11 +463,11 @@
   // ── formatery ──
   const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
   const group3 = (s) => s.replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
-  const money = (n) => { const neg = n < -0.0001; const [i, d] = Math.abs(round2(n)).toFixed(2).split('.'); return (neg ? '−' : '') + group3(i) + ',' + d; };
+  const money = (n) => { const neg = n < -0.0001; const [i, d] = Math.abs(round2(n)).toFixed(2).split('.'); return (neg ? '−' : '') + group3(i) + '.' + d; };
   const qty = (q, unit) => {
     const a = Math.abs(q), s = q < 0 ? '−' : '';
-    if (unit === 'kg') return s + a.toFixed(3).replace('.', ',');
-    return s + (Number.isInteger(a) ? String(a) : String(+a.toFixed(3)).replace('.', ','));
+    if (unit === 'kg') return s + a.toFixed(3);
+    return s + (Number.isInteger(a) ? String(a) : String(+a.toFixed(3)));
   };
   const parseNum = (s) => { const v = parseFloat(String(s).replace(',', '.')); return isFinite(v) ? v : 0; };
   const norm = (s) => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l');

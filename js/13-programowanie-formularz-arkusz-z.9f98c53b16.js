@@ -219,7 +219,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     };
     var clean = function clean(fd, v) {
       var x = String(v);
-      if (fd.type === 'int') x = x.replace(/[^0-9]/g, '');else if (fd.type === 'money' || fd.type === 'dec') x = x.replace('.', ',').replace(/[^0-9,]/g, '').replace(/,(?=.*,)/g, '');
+      if (fd.type === 'int') x = x.replace(/[^0-9]/g, '');else if (fd.type === 'money' || fd.type === 'dec') x = x.replace(',', '.').replace(/[^0-9.]/g, '').replace(/\.(?=.*\.)/g, '');
       if (fd.upper) x = x.toUpperCase();
       if (fd.filter) x = fd.filter(x);
       if (fd.max) x = x.slice(0, fd.max);
@@ -236,7 +236,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       var fd = fields[id];
       setF(function (s) {
         var cur = String(s[id] == null ? '' : s[id]);
-        var nv = k === 'BACK' ? cur.slice(0, -1) : k === 'CLEAR' || k === 'C' ? '' : k === 'ENTER' ? fd.type === 'area' ? cur + '\n' : cur : (k === ',' && !cur && isNum(fd.type) ? '0' : cur) + k;
+        var nv = k === 'BACK' ? cur.slice(0, -1) : k === 'CLEAR' || k === 'C' ? '' : k === 'ENTER' ? fd.type === 'area' ? cur + '\n' : cur : (k === '.' && !cur && isNum(fd.type) ? '0' : cur) + k;
         return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, clean(fd, nv)));
       });
       if (k === 'ENTER' && fd.type !== 'area') hideOsk();

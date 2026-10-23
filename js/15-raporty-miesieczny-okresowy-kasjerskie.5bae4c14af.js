@@ -766,7 +766,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-pf-ct"
     }, /*#__PURE__*/React.createElement("b", null, "Zmiana")), /*#__PURE__*/React.createElement(Tbl, {
-      rows: [['Numer zmiany', '', String(sh.no)], ['Kasjer', '', sh.name], ['Zmianę rozpoczęto', '', R().fmtDT(sh.start, true)], ['Zmianę zakończono', '', sh.end ? R().fmtDT(sh.end, true) : '—'], ['Czas trwania', '', R().durLong(end - sh.start)], ['Transakcji na godzinę', '', (s.ok.length / hrs).toFixed(2).replace('.', ',')], ['Utarg na godzinę', '', M(s.val / hrs)], ['Pozycji na godzinę', '', (s.pos / hrs).toFixed(2).replace('.', ',')]]
+      rows: [['Numer zmiany', '', String(sh.no)], ['Kasjer', '', sh.name], ['Zmianę rozpoczęto', '', R().fmtDT(sh.start, true)], ['Zmianę zakończono', '', sh.end ? R().fmtDT(sh.end, true) : '—'], ['Czas trwania', '', R().durLong(end - sh.start)], ['Transakcji na godzinę', '', (s.ok.length / hrs).toFixed(2)], ['Utarg na godzinę', '', M(s.val / hrs)], ['Pozycji na godzinę', '', (s.pos / hrs).toFixed(2)]]
     })), /*#__PURE__*/React.createElement("div", {
       className: "np-pe-card one"
     }, /*#__PURE__*/React.createElement("div", {
@@ -1415,7 +1415,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         }
       }],
       bottom: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(RepFoot, {
-        tot: [['Pozycji', String(rows.length)], ['Razem sprzedano', String(+sq.toFixed(3)).replace('.', ',')], ['Wartość', M(sv) + ' zł']],
+        tot: [['Pozycji', String(rows.length)], ['Razem sprzedano', String(+sq.toFixed(3))], ['Wartość', M(sv) + ' zł']],
         acts: [['Drukuj', 'printer', function () {
           return printIt(ui, 'Raport sprzedaży', [['Pozycji', String(rows.length)], ['Wartość', M(sv) + ' zł']].concat(sfCount(f) ? [['Filtry', sfCount(f) + ' aktywne']] : []));
         }], ['PDF', 'file-text', function () {
@@ -2046,7 +2046,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       });
     };
     var last = data.docs[data.docs.length - 1];
-    var info = [['Numer unikatowy kasy', NP_DATA.SHOP.unique], ['Numer ewidencyjny', 'NX/2026/000842'], ['Pojemność pamięci chronionej', '8 GB'], ['Zajęte', '1,2% (98 MB)'], ['Dokumentów w pamięci', String(items.length)], ['Ostatni JPK ID', String(items.length ? items[items.length - 1].jpk : '—')], ['Ostatni raport dobowy', data.reports.length ? "nr ".concat(data.reports.length, " \xB7 ").concat(R().fmtDT(data.reports[data.reports.length - 1].t)) : '—'], ['Stan pamięci', 'Prawidłowy']];
+    var info = [['Numer unikatowy kasy', NP_DATA.SHOP.unique], ['Numer ewidencyjny', 'NX/2026/000842'], ['Pojemność pamięci chronionej', '8 GB'], ['Zajęte', '1.2% (98 MB)'], ['Dokumentów w pamięci', String(items.length)], ['Ostatni JPK ID', String(items.length ? items[items.length - 1].jpk : '—')], ['Ostatni raport dobowy', data.reports.length ? "nr ".concat(data.reports.length, " \xB7 ").concat(R().fmtDT(data.reports[data.reports.length - 1].t)) : '—'], ['Stan pamięci', 'Prawidłowy']];
     var jpkXml = function jpkXml(x) {
       return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<JPK_KASA wersja=\"1-0\">\n  <Naglowek>\n    <KodFormularza>JPK_KASA</KodFormularza>\n    <DataWytworzenia>".concat(new Date(x.t).toISOString().slice(0, 19), "</DataWytworzenia>\n    <NrUnikatowy>").concat(NP_DATA.SHOP.unique, "</NrUnikatowy>\n  </Naglowek>\n  <Dokument id=\"").concat(x.jpk, "\" typ=\"").concat(x.typ, "\">\n").concat(x.doc ? x.doc.lines.map(function (l) {
         return "    <Pozycja nazwa=\"".concat(l.name, "\" ilosc=\"").concat(l.qty, "\" cena=\"").concat(l.price.toFixed(2), "\" vat=\"").concat(l.vat, "\"/>");

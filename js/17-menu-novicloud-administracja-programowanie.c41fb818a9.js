@@ -930,7 +930,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       return ui.dialog({
         tone: 'info',
         title: 'Stan kaucji DRS',
-        rows: [['Serwis kaucyjny', 'połączony'], ['Operator systemu', 'DRS Polska'], ['Kaucje pobrane dziś', '14 szt. · 7,00 zł'], ['Kaucje zwrócone dziś', '6 szt. · 3,00 zł'], ['Saldo dnia', '4,00 zł'], ['Ostatnia wymiana danych', new Date().toLocaleTimeString('pl-PL', {
+        rows: [['Serwis kaucyjny', 'połączony'], ['Operator systemu', 'DRS Polska'], ['Kaucje pobrane dziś', '14 szt. · 7.00 zł'], ['Kaucje zwrócone dziś', '6 szt. · 3.00 zł'], ['Saldo dnia', '4.00 zł'], ['Ostatnia wymiana danych', new Date().toLocaleTimeString('pl-PL', {
           hour: '2-digit',
           minute: '2-digit'
         })]],
@@ -966,13 +966,13 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       return false;
     }, 3);
     var nip = /^\d{10}$/.test(shop.nip || '') ? shop.nip.slice(0, 3) + '-' + shop.nip.slice(3, 6) + '-' + shop.nip.slice(6, 8) + '-' + shop.nip.slice(8) : shop.nip;
-    var rows = [['Sprzęt', NP_BRAND.a + ' ' + NP_BRAND.b], ['Nr unikatowy', SHOP.unique], ['Nazwa konta w chmurze', 'wtest'], ['Data instalacji', '2009-01-01 02:00'], ['Data produkcji tej wersji', '2026-10-09 11:04'], ['Wersja', SHOP.versionFull], ['Android wer.', '10'], ['Adres IP', 'wlan0: 192.168.1.11'], ['Rozmiar bazy danych', '1,1 MB'], ['Data fiskalizacji', '2026-05-04 13:08:41'], ['Numer NIP', nip]];
+    var rows = [['Sprzęt', NP_BRAND.a + ' ' + NP_BRAND.b], ['Nr unikatowy', SHOP.unique], ['Nazwa konta w chmurze', 'wtest'], ['Data instalacji', '2009-01-01 02:00'], ['Data produkcji tej wersji', '2026-10-09 11:04'], ['Wersja', SHOP.versionFull], ['Android wer.', '10'], ['Adres IP', 'wlan0: 192.168.1.11'], ['Rozmiar bazy danych', '1.1 MB'], ['Data fiskalizacji', '2026-05-04 13:08:41'], ['Numer NIP', nip]];
     var appinfo = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<appinfo>\n".concat(rows.map(function (_ref19) {
       var _ref20 = _slicedToArray(_ref19, 2),
         k = _ref20[0],
         v = _ref20[1];
       return "  <item name=\"".concat(k, "\">").concat(v, "</item>");
-    }).join('\n'), "\n  <item name=\"Ekran\">10,1\u2033 \xB7 1280 \xD7 800</item>\n</appinfo>");
+    }).join('\n'), "\n  <item name=\"Ekran\">10.1\u2033 \xB7 1280 \xD7 800</item>\n</appinfo>");
     var serial = function serial() {
       return ui.dialog({
         tone: 'info',

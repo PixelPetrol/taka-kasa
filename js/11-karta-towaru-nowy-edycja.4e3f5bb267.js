@@ -367,6 +367,14 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     });
     return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, v));
   };
+  var XC_LVLS = ['own', 'price', 'priceH', 'priceN', 'priceD'];
+  var XC_LVL_SHORT = {
+    own: 'Własna',
+    price: 'Detaliczna',
+    priceH: 'Hurtowa',
+    priceN: 'Nocna',
+    priceD: 'Dodatkowa'
+  };
   var isSup = function isSup(p) {
     return /^Opłata SUP/i.test(p.name);
   };
@@ -383,7 +391,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     attrs: 'Atrybuty'
   };
   var toStr = function toStr(v) {
-    return v === '' || v == null ? '' : typeof v === 'number' ? String(v).replace('.', ',') : String(v);
+    return v === '' || v == null ? '' : typeof v === 'number' ? String(v) : String(v);
   };
   function ProductEditor(_ref3) {
     var product = _ref3.product,
@@ -413,7 +421,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           return {
             code: c.code || '',
             price: toStr(c.price),
-            mult: toStr(c.mult || 1)
+            mult: toStr(c.mult || 1),
+            lvl: c.lvl || 'own'
           };
         });
         return b;
@@ -445,6 +454,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       _useState20 = _slicedToArray(_useState19, 2),
       errs = _useState20[0],
       setErrs = _useState20[1];
+    var _useState21 = useState(null),
+      _useState22 = _slicedToArray(_useState21, 2),
+      xcOpen = _useState22[0],
+      setXcOpen = _useState22[1];
     var bodyRef = useRef(null);
     var inputs = useRef({});
     var set = function set(k, v) {
@@ -507,14 +520,14 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }, [focus]);
     function clean(id, v) {
       var k = numKind(id);
-      return k ? v.replace('.', ',').replace(k === 'int' ? /[^0-9]/g : /[^0-9,]/g, '') : v;
+      return k ? v.replace(',', '.').replace(k === 'int' ? /[^0-9]/g : /[^0-9.]/g, '') : v;
     }
     var oskKey = function oskKey(k) {
       var id = focus;
       if (!id) return;
       setF(function (s) {
         var cur = readF(s, id);
-        var nv = clean(id, k === 'BACK' ? cur.slice(0, -1) : k === 'CLEAR' || k === 'C' ? '' : k === ',' && cur.includes(',') ? cur : (k === ',' && !cur ? '0' : cur) + k);
+        var nv = clean(id, k === 'BACK' ? cur.slice(0, -1) : k === 'CLEAR' || k === 'C' ? '' : k === '.' && cur.includes('.') ? cur : (k === '.' && !cur ? '0' : cur) + k);
         return writeF(s, id, nv);
       });
       setErrs(function (e) {
@@ -579,7 +592,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }).map(function (c) {
         return {
           code: c.code,
-          price: c.price ? NPF.parseNum(c.price) : '',
+          lvl: c.lvl || 'own',
+          price: (c.lvl || 'own') === 'own' && c.price ? NPF.parseNum(c.price) : '',
           mult: Math.max(1, parseInt(c.mult, 10) || 1)
         };
       });
@@ -841,7 +855,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-pe-f span"
     }, /*#__PURE__*/React.createElement("span", {
       className: "np-pe-l"
-    }, "Kody dodatkowe", /*#__PURE__*/React.createElement("em", null, "cena za 1 szt. (puste = cena towaru) \xB7 mno\u017Cnik = ilo\u015B\u0107 sprzedawana jednym kodem")), /*#__PURE__*/React.createElement("div", {
+    }, "Kody dodatkowe", /*#__PURE__*/React.createElement("em", null, "cena: w\u0142asna za 1 szt. (puste = cena towaru) lub poziom cen \xB7 mno\u017Cnik = ilo\u015B\u0107 sprzedawana jednym kodem")), /*#__PURE__*/React.createElement("div", {
       className: "np-pe-xcs"
     }, f.codes.map(function (c, i) {
       return /*#__PURE__*/React.createElement("div", {
@@ -852,10 +866,70 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }, i + 1), input("xc:".concat(i, ":code"), {
         ph: 'Kod kreskowy'
       }), /*#__PURE__*/React.createElement("span", {
-        className: "np-pe-xc-f"
-      }, input("xc:".concat(i, ":price"), {
-        ph: 'Cena'
-      }), /*#__PURE__*/React.createElement("em", null, "z\u0142")), /*#__PURE__*/React.createElement("span", {
+        className: 'np-pe-xc-f np-pe-xc-p' + ((c.lvl || 'own') === 'own' ? ' own' : ' lvl') + (xcOpen === i ? ' open' : '')
+      }, (c.lvl || 'own') === 'own' ? input("xc:".concat(i, ":price"), {
+        ph: 'Własna cena'
+      }) : /*#__PURE__*/React.createElement("button", {
+        className: "np-pe-xc-lv",
+        onClick: function onClick() {
+          hideOsk();
+          var op = xcOpen === i ? null : i;
+          setXcOpen(op);
+          if (op != null) setTimeout(function () {
+            var box = bodyRef.current;
+            var m = box && box.querySelector('.np-pe-xc-menu');
+            if (!m) return;
+            var sc = box.getBoundingClientRect().height / box.offsetHeight || 1;
+            var d = m.getBoundingClientRect().bottom - box.getBoundingClientRect().bottom;
+            if (d > -12) box.scrollBy({
+              top: (d + 20) / sc,
+              behavior: 'smooth'
+            });
+          }, 30);
+        }
+      }, /*#__PURE__*/React.createElement("small", null, XC_LVL_SHORT[c.lvl]), NPF.parseNum(f[c.lvl]) > 0 ? NPF.money(NPF.parseNum(f[c.lvl])) + ' zł' : 'brak ceny'), /*#__PURE__*/React.createElement("button", {
+        className: "np-pe-xc-src",
+        "aria-label": "Poziom cen",
+        onClick: function onClick() {
+          hideOsk();
+          var op = xcOpen === i ? null : i;
+          setXcOpen(op);
+          if (op != null) setTimeout(function () {
+            var box = bodyRef.current;
+            var m = box && box.querySelector('.np-pe-xc-menu');
+            if (!m) return;
+            var sc = box.getBoundingClientRect().height / box.offsetHeight || 1;
+            var d = m.getBoundingClientRect().bottom - box.getBoundingClientRect().bottom;
+            if (d > -12) box.scrollBy({
+              top: (d + 20) / sc,
+              behavior: 'smooth'
+            });
+          }, 30);
+        }
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: "chevron-down"
+      })), xcOpen === i && /*#__PURE__*/React.createElement("span", {
+        className: "np-pe-xc-menu"
+      }, XC_LVLS.map(function (lv) {
+        return /*#__PURE__*/React.createElement("button", {
+          key: lv,
+          className: (c.lvl || 'own') === lv ? 'on' : '',
+          onClick: function onClick() {
+            setF(function (s) {
+              return _objectSpread(_objectSpread({}, s), {}, {
+                codes: s.codes.map(function (y, j) {
+                  return j === i ? _objectSpread(_objectSpread({}, y), {}, {
+                    lvl: lv
+                  }) : y;
+                })
+              });
+            });
+            setXcOpen(null);
+          }
+        }, /*#__PURE__*/React.createElement("span", null, lv === 'own' ? 'Własna cena' : LBL[lv]), /*#__PURE__*/React.createElement("small", null, lv === 'own' ? 'wpisz cenę kodu' : NPF.parseNum(f[lv]) > 0 ? NPF.money(NPF.parseNum(f[lv])) + ' zł' : 'brak ceny'), (c.lvl || 'own') === lv && /*#__PURE__*/React.createElement(Icon, {
+          name: "check"
+        }));
+      }))), /*#__PURE__*/React.createElement("span", {
         className: "np-pe-xc-f"
       }, /*#__PURE__*/React.createElement("em", null, "\xD7"), input("xc:".concat(i, ":mult"), {
         ph: '1'
@@ -886,7 +960,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
             codes: [].concat(_toConsumableArray(s.codes), [{
               code: '',
               price: '',
-              mult: '1'
+              mult: '1',
+              lvl: 'own'
             }])
           });
         });

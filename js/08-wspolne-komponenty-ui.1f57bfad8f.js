@@ -71,7 +71,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   function pcToKey(e) {
     var k = e.key;
     if (/^[0-9]$/.test(k)) return k;
-    if (k === ',' || k === '.' || k === 'Decimal') return ',';
+    if (k === '.' || k === '.' || k === 'Decimal') return '.';
     if (PC_MAP[k]) return PC_MAP[k];
     var l = (k || '').toLowerCase();
     if (l === 'x' || k === '*') return 'X';
@@ -267,6 +267,17 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   var EXTRA_ICONS = {
     menu: S('<path d="M4 7h16M4 12h16M4 17h16"/>'),
     'chevron-down': S('<path d="m6 9 6 6 6-6"/>'),
+    landmark: S('<path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="m12 2 8 5H4Z"/>'),
+    unlink: S('<path d="m18.84 12.25 1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71"/><path d="M8 2v3M2 8h3M16 22v-3M22 16h-3"/>'),
+    database: S('<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>'),
+    'cloud-ok': S('<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><path d="m9.5 13.5 2 2 3.5-3.5"/>'),
+    'file-check': S('<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/>'),
+    battery: S('<rect x="2" y="7" width="16" height="10" rx="2"/><path d="M22 11v2"/>'),
+    'layout-grid': S('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>'),
+    'corner-down-left': S('<path d="M20 4v7a4 4 0 0 1-4 4H4"/><path d="m9 10-5 5 5 5"/>'),
+    'sticky-note': S('<path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"/><path d="M15 3v4a2 2 0 0 0 2 2h4"/>'),
+    'user-x': S('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 8 5 5M22 8l-5 5"/>'),
+    'bookmark-plus': S('<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/><path d="M12 7v6M9 10h6"/>'),
     image: S('<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>'),
     move: S('<path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/>'),
     'corner-down-right': S('<path d="m15 10 5 5-5 5"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/>'),
@@ -331,10 +342,236 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }
     });
   }
+
+  // Pasek statusu: przeciągnięcie w dół (albo dotknięcie ikon) wysuwa panel z opisem stanu kasy
+  var crkErr = function crkErr() {
+    try {
+      return localStorage.getItem('nextpro.crkState') === 'err';
+    } catch (e) {
+      return false;
+    }
+  };
+  var SB_ITEMS = function SB_ITEMS(now) {
+    return [{
+      id: 'cloud',
+      icon: 'link',
+      tone: 'ok',
+      title: 'NoviCloud',
+      val: 'Połączono',
+      sub: 'Synchronizacja ' + NPF.time(new Date(now - 4 * 60000)) + ' · konto wtest'
+    }, crkErr() ? {
+      id: 'crk',
+      icon: 'database',
+      tone: 'err',
+      title: 'Repozytorium (CRK)',
+      val: 'Brak komunikacji',
+      sub: 'Ostatnia udana wysyłka ' + NPF.time(new Date(now - 95 * 60000)) + ' · ponawianie co 5 min'
+    } : {
+      id: 'crk',
+      icon: 'database',
+      tone: 'ok',
+      title: 'Repozytorium (CRK)',
+      val: 'Komunikacja OK',
+      sub: 'Ostatnia wysyłka ' + NPF.time(new Date(now - 11 * 60000))
+    }, {
+      id: 'jpk',
+      icon: 'file-check',
+      tone: 'ok',
+      title: 'JPK / eDokumenty',
+      val: 'Wysłano 142 z 142',
+      sub: 'Brak dokumentów w kolejce',
+      bar: 1
+    }, {
+      id: 'net',
+      icon: 'wifi',
+      tone: 'ok',
+      title: 'Internet',
+      val: 'Wi‑Fi „Sklep_5G”',
+      sub: 'Sygnał dobry · IP 192.168.1.24'
+    }, {
+      id: 'eur',
+      icon: 'euro',
+      tone: 'info',
+      title: 'Europlatform',
+      val: 'Włączona',
+      sub: 'Kurs EUR 4.32 · przeliczanie na paragonie'
+    }, {
+      id: 'pwr',
+      icon: 'plug',
+      tone: 'ok',
+      title: 'Zasilanie',
+      val: 'Ładowarka podłączona',
+      sub: 'Zasilanie sieciowe'
+    }, {
+      id: 'bat',
+      icon: 'battery',
+      tone: 'ok',
+      title: 'Bateria',
+      val: '78%',
+      sub: 'Ładowanie · pełna za ok. 40 min',
+      batt: 78
+    }, {
+      id: 'eft',
+      icon: 'credit-card',
+      tone: 'ok',
+      title: 'Terminal płatniczy',
+      val: 'Gotowy',
+      sub: 'Połączenie przez Wi‑Fi'
+    }];
+  };
+  function StatusPanel(_ref2) {
+    var now = _ref2.now,
+      drag = _ref2.drag,
+      onClose = _ref2.onClose;
+    useKeys(function (k) {
+      if (k === 'ESC') {
+        onClose();
+        return true;
+      }
+      return true;
+    }, 90);
+    var S = useRef({}).current;
+    var _useState9 = useState(0),
+      _useState0 = _slicedToArray(_useState9, 2),
+      dy = _useState0[0],
+      setDy = _useState0[1];
+    var down = function down(e) {
+      var sc = e.currentTarget.getBoundingClientRect().height / e.currentTarget.offsetHeight || 1;
+      Object.assign(S, {
+        y0: e.clientY,
+        sc: sc,
+        mv: false
+      });
+      var move = function move(ev) {
+        var d = (ev.clientY - S.y0) / S.sc;
+        if (Math.abs(d) > 6) S.mv = true;
+        setDy(Math.min(0, d));
+      };
+      var _up = function up(ev) {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', _up);
+        var d = (ev.clientY - S.y0) / S.sc;
+        if (d < -80) onClose();else setDy(0);
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', _up);
+    };
+    var y = drag != null ? drag : dy;
+    return /*#__PURE__*/React.createElement("div", {
+      className: "np-sbp-wrap",
+      onPointerDown: function onPointerDown(e) {
+        if (e.target === e.currentTarget) onClose();
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: 'np-sbp' + (drag != null || dy ? ' drag' : ''),
+      style: {
+        transform: 'translateY(' + y + 'px)'
+      },
+      onPointerDown: down
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-sbp-head"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-sbp-time"
+    }, NPF.time(new Date(now)), /*#__PURE__*/React.createElement("span", null, NPF.dateLong(new Date(now)))), function () {
+      var bad = SB_ITEMS(now).filter(function (x) {
+        return x.tone === 'err';
+      });
+      return bad.length ? /*#__PURE__*/React.createElement("span", {
+        className: "np-sbp-ok err"
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: "circle-alert"
+      }), bad.length === 1 ? bad[0].title + ': ' + bad[0].val.toLowerCase() : 'Problemy: ' + bad.length) : /*#__PURE__*/React.createElement("span", {
+        className: "np-sbp-ok"
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: "check"
+      }), "Kasa dzia\u0142a prawid\u0142owo");
+    }()), /*#__PURE__*/React.createElement("div", {
+      className: "np-sbp-grid"
+    }, SB_ITEMS(now).map(function (it) {
+      return /*#__PURE__*/React.createElement("div", {
+        key: it.id,
+        className: 'np-sbp-it t-' + it.tone
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "np-sbp-ic"
+      }, it.batt ? /*#__PURE__*/React.createElement("span", {
+        className: "np-batt big"
+      }, /*#__PURE__*/React.createElement("i", {
+        style: {
+          width: it.batt + '%'
+        }
+      })) : /*#__PURE__*/React.createElement(Icon, {
+        name: it.icon
+      })), /*#__PURE__*/React.createElement("span", {
+        className: "np-sbp-tx"
+      }, /*#__PURE__*/React.createElement("small", null, it.title), /*#__PURE__*/React.createElement("b", null, it.val), /*#__PURE__*/React.createElement("em", null, it.sub), it.bar && /*#__PURE__*/React.createElement("i", {
+        className: "np-sbp-bar"
+      }, /*#__PURE__*/React.createElement("s", {
+        style: {
+          width: it.bar * 100 + '%'
+        }
+      }))));
+    })), /*#__PURE__*/React.createElement("div", {
+      className: "np-sbp-grip"
+    }, /*#__PURE__*/React.createElement("i", null))));
+  }
   function StatusBar() {
     var now = useMinute();
+    var _useState1 = useState(crkErr),
+      _useState10 = _slicedToArray(_useState1, 2),
+      crk = _useState10[0],
+      setCrk = _useState10[1];
+    useEffect(function () {
+      var h = function h() {
+        return setCrk(crkErr());
+      };
+      window.addEventListener('np-status', h);
+      window.addEventListener('storage', h);
+      return function () {
+        window.removeEventListener('np-status', h);
+        window.removeEventListener('storage', h);
+      };
+    }, []);
+    var _useState11 = useState(false),
+      _useState12 = _slicedToArray(_useState11, 2),
+      open = _useState12[0],
+      setOpen = _useState12[1];
+    var _useState13 = useState(null),
+      _useState14 = _slicedToArray(_useState13, 2),
+      drag = _useState14[0],
+      setDrag = _useState14[1];
+    var S = useRef({}).current;
+    var H = 560;
+    var down = function down(e) {
+      if (e.target.closest('.np-logo')) return;
+      var el = e.currentTarget;
+      var sc = el.getBoundingClientRect().height / el.offsetHeight || 1;
+      Object.assign(S, {
+        y0: e.clientY,
+        sc: sc,
+        mv: false
+      });
+      var move = function move(ev) {
+        var d = (ev.clientY - S.y0) / S.sc;
+        if (d > 8) {
+          S.mv = true;
+          setDrag(Math.min(0, d - H));
+        }
+      };
+      var _up2 = function up(ev) {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', _up2);
+        var d = (ev.clientY - S.y0) / S.sc;
+        if (S.mv) {
+          setDrag(null);
+          setOpen(d > 90);
+        } else if (ev.target.closest && ev.target.closest('.np-status-icons, .np-status-date')) setOpen(true);
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', _up2);
+    };
     return /*#__PURE__*/React.createElement("div", {
-      className: "np-status"
+      className: 'np-status' + (open || drag != null ? ' open' : ''),
+      onPointerDown: down
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-logo",
       onPointerDown: function onPointerDown(e) {
@@ -355,17 +592,32 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }, /*#__PURE__*/React.createElement("span", null, NPF.dateLong(now)), NPF.time(now)), /*#__PURE__*/React.createElement("div", {
       className: "np-status-icons"
     }, /*#__PURE__*/React.createElement(Icon, {
+      name: "euro"
+    }), /*#__PURE__*/React.createElement("span", {
+      title: "NoviCloud"
+    }, /*#__PURE__*/React.createElement(Icon, {
       name: "link"
-    }), /*#__PURE__*/React.createElement(Icon, {
+    })), crk && /*#__PURE__*/React.createElement("span", {
+      className: "np-sb-err",
+      title: "Repozytorium (CRK): brak komunikacji"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "database"
+    })), /*#__PURE__*/React.createElement(Icon, {
       name: "plug"
     }), /*#__PURE__*/React.createElement(Icon, {
       name: "wifi"
     }), /*#__PURE__*/React.createElement("span", {
       className: "np-batt"
-    }, /*#__PURE__*/React.createElement("i", null))));
+    }, /*#__PURE__*/React.createElement("i", null))), (open || drag != null) && /*#__PURE__*/React.createElement(StatusPanel, {
+      now: +now,
+      drag: drag,
+      onClose: function onClose() {
+        return setOpen(false);
+      }
+    }));
   }
-  function Toast(_ref2) {
-    var toast = _ref2.toast;
+  function Toast(_ref3) {
+    var toast = _ref3.toast;
     if (!toast) return null;
     return /*#__PURE__*/React.createElement("div", {
       key: toast.id,
@@ -374,12 +626,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       name: toast.icon
     }), /*#__PURE__*/React.createElement("span", null, toast.text));
   }
-  function Sheet(_ref3) {
-    var onClose = _ref3.onClose,
-      _ref3$className = _ref3.className,
-      className = _ref3$className === void 0 ? '' : _ref3$className,
-      style = _ref3.style,
-      children = _ref3.children;
+  function Sheet(_ref4) {
+    var onClose = _ref4.onClose,
+      _ref4$className = _ref4.className,
+      className = _ref4$className === void 0 ? '' : _ref4$className,
+      style = _ref4.style,
+      children = _ref4.children;
     return /*#__PURE__*/React.createElement("div", {
       className: "np-sheet-bg",
       onPointerDown: function onPointerDown(e) {
@@ -404,21 +656,21 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     question: '?',
     info: 'i'
   };
-  function Dialog(_ref4) {
-    var _ref4$tone = _ref4.tone,
-      tone = _ref4$tone === void 0 ? 'info' : _ref4$tone,
-      title = _ref4.title,
-      desc = _ref4.desc,
-      rows = _ref4.rows,
-      _ref4$actions = _ref4.actions,
-      actions = _ref4$actions === void 0 ? [] : _ref4$actions,
-      progress = _ref4.progress,
-      onClose = _ref4.onClose,
-      _ref4$prio = _ref4.prio,
-      prio = _ref4$prio === void 0 ? 30 : _ref4$prio,
-      children = _ref4.children,
-      _ref4$className = _ref4.className,
-      className = _ref4$className === void 0 ? '' : _ref4$className;
+  function Dialog(_ref5) {
+    var _ref5$tone = _ref5.tone,
+      tone = _ref5$tone === void 0 ? 'info' : _ref5$tone,
+      title = _ref5.title,
+      desc = _ref5.desc,
+      rows = _ref5.rows,
+      _ref5$actions = _ref5.actions,
+      actions = _ref5$actions === void 0 ? [] : _ref5$actions,
+      progress = _ref5.progress,
+      onClose = _ref5.onClose,
+      _ref5$prio = _ref5.prio,
+      prio = _ref5$prio === void 0 ? 30 : _ref5$prio,
+      children = _ref5.children,
+      _ref5$className = _ref5.className,
+      className = _ref5$className === void 0 ? '' : _ref5$className;
     useKeys(function (k) {
       if (progress) return true;
       if (k === 'OK' || k === 'RAZEM') {
@@ -447,10 +699,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-dlg-desc"
     }, desc), rows && rows.length > 0 && /*#__PURE__*/React.createElement("div", {
       className: "np-dlg-rows"
-    }, rows.map(function (_ref5, i) {
-      var _ref6 = _slicedToArray(_ref5, 2),
-        l = _ref6[0],
-        v = _ref6[1];
+    }, rows.map(function (_ref6, i) {
+      var _ref7 = _slicedToArray(_ref6, 2),
+        l = _ref7[0],
+        v = _ref7[1];
       return /*#__PURE__*/React.createElement("div", {
         key: i,
         className: "np-dlg-row"
@@ -470,16 +722,16 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   }
 
   // Układ jak na kasie: 7-8-9 u góry
-  var PAD_MONEY = [['7', '8', '9'], ['4', '5', '6'], ['1', '2', '3'], [',', '0', 'BACK']];
+  var PAD_MONEY = [['7', '8', '9'], ['4', '5', '6'], ['1', '2', '3'], ['.', '0', 'BACK']];
   var PAD_INT = [['7', '8', '9'], ['4', '5', '6'], ['1', '2', '3'], ['C', '0', 'BACK']];
-  function NumPad(_ref7) {
-    var onKey = _ref7.onKey,
-      _ref7$keys = _ref7.keys,
-      keys = _ref7$keys === void 0 ? PAD_MONEY : _ref7$keys,
-      _ref7$className = _ref7.className,
-      className = _ref7$className === void 0 ? '' : _ref7$className,
-      _ref7$labels = _ref7.labels,
-      labels = _ref7$labels === void 0 ? {} : _ref7$labels;
+  function NumPad(_ref8) {
+    var onKey = _ref8.onKey,
+      _ref8$keys = _ref8.keys,
+      keys = _ref8$keys === void 0 ? PAD_MONEY : _ref8$keys,
+      _ref8$className = _ref8.className,
+      className = _ref8$className === void 0 ? '' : _ref8$className,
+      _ref8$labels = _ref8.labels,
+      labels = _ref8$labels === void 0 ? {} : _ref8$labels;
     var h = useRef(null);
     var pd = function pd(e, k) {
       if (e.button && e.button > 0 || !k) return;
@@ -523,12 +775,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       return (cur === '0' ? '' : cur) + k;
     }
     var dec = mode === 'qty' ? 3 : 2;
-    if (k === ',') {
-      if (cur.includes(',')) return cur;
-      return (cur || '0') + ',';
+    if (k === '.') {
+      if (cur.includes('.')) return cur;
+      return (cur || '0') + '.';
     }
     if (!/^[0-9]$/.test(k)) return cur;
-    var _cur$split = cur.split(','),
+    var _cur$split = cur.split('.'),
       _cur$split2 = _slicedToArray(_cur$split, 2),
       i = _cur$split2[0],
       d = _cur$split2[1];
@@ -539,30 +791,30 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     if (i.length >= 7) return cur;
     return (cur === '0' ? '' : cur) + k;
   }
-  function AmountSheet(_ref8) {
-    var title = _ref8.title,
-      desc = _ref8.desc,
-      _ref8$mode = _ref8.mode,
-      mode = _ref8$mode === void 0 ? 'money' : _ref8$mode,
-      maxLen = _ref8.maxLen,
-      _ref8$initial = _ref8.initial,
-      initial = _ref8$initial === void 0 ? '' : _ref8$initial,
-      suffix = _ref8.suffix,
-      presets = _ref8.presets,
-      _ref8$confirmLabel = _ref8.confirmLabel,
-      confirmLabel = _ref8$confirmLabel === void 0 ? 'Zatwierdź' : _ref8$confirmLabel,
-      _ref8$confirmTone = _ref8.confirmTone,
-      confirmTone = _ref8$confirmTone === void 0 ? 'green' : _ref8$confirmTone,
-      validate = _ref8.validate,
-      format = _ref8.format,
-      onCancel = _ref8.onCancel,
-      onConfirm = _ref8.onConfirm,
-      _ref8$prio = _ref8.prio,
-      prio = _ref8$prio === void 0 ? 30 : _ref8$prio;
-    var _useState9 = useState(initial),
-      _useState0 = _slicedToArray(_useState9, 2),
-      v = _useState0[0],
-      setV = _useState0[1];
+  function AmountSheet(_ref9) {
+    var title = _ref9.title,
+      desc = _ref9.desc,
+      _ref9$mode = _ref9.mode,
+      mode = _ref9$mode === void 0 ? 'money' : _ref9$mode,
+      maxLen = _ref9.maxLen,
+      _ref9$initial = _ref9.initial,
+      initial = _ref9$initial === void 0 ? '' : _ref9$initial,
+      suffix = _ref9.suffix,
+      presets = _ref9.presets,
+      _ref9$confirmLabel = _ref9.confirmLabel,
+      confirmLabel = _ref9$confirmLabel === void 0 ? 'Zatwierdź' : _ref9$confirmLabel,
+      _ref9$confirmTone = _ref9.confirmTone,
+      confirmTone = _ref9$confirmTone === void 0 ? 'green' : _ref9$confirmTone,
+      validate = _ref9.validate,
+      format = _ref9.format,
+      onCancel = _ref9.onCancel,
+      onConfirm = _ref9.onConfirm,
+      _ref9$prio = _ref9.prio,
+      prio = _ref9$prio === void 0 ? 30 : _ref9$prio;
+    var _useState15 = useState(initial),
+      _useState16 = _slicedToArray(_useState15, 2),
+      v = _useState16[0],
+      setV = _useState16[1];
     var err = v !== '' && validate ? validate(v) : null;
     var ok = v !== '' && !err;
     var submit = function submit() {
@@ -574,7 +826,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       });
     };
     useKeys(function (k) {
-      if (/^[0-9]$/.test(k) || k === 'BACK' || k === ',' && mode !== 'digits' && mode !== 'percent') push(k);else if (k === 'OK' || k === 'RAZEM') submit();else if (k === 'ESC') {
+      if (/^[0-9]$/.test(k) || k === 'BACK' || k === '.' && mode !== 'digits' && mode !== 'percent') push(k);else if (k === 'OK' || k === 'RAZEM') submit();else if (k === 'ESC') {
         if (v) setV('');else onCancel();
       }
       return true;
@@ -602,7 +854,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: 'np-amount-field' + (err ? ' err' : '')
     }, shown != null ? /*#__PURE__*/React.createElement("span", null, shown) : /*#__PURE__*/React.createElement("span", {
       className: "ph"
-    }, mode === 'money' ? '0,00' : mode === 'percent' ? '0' : '—'), sfx && /*#__PURE__*/React.createElement("small", null, sfx)), /*#__PURE__*/React.createElement("div", {
+    }, mode === 'money' ? '0.00' : mode === 'percent' ? '0' : '—'), sfx && /*#__PURE__*/React.createElement("small", null, sfx)), /*#__PURE__*/React.createElement("div", {
       className: "np-amount-err"
     }, err || ''), /*#__PURE__*/React.createElement(NumPad, {
       onKey: push,
@@ -636,8 +888,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     z: 'żź',
     x: 'ź'
   };
-  var ShiftIco = function ShiftIco(_ref9) {
-    var lock = _ref9.lock;
+  var ShiftIco = function ShiftIco(_ref0) {
+    var lock = _ref0.lock;
     return /*#__PURE__*/React.createElement("svg", {
       viewBox: "0 0 24 24",
       width: "24",
@@ -654,26 +906,26 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       strokeLinecap: "round"
     }));
   };
-  function OSK(_ref0) {
-    var onKey = _ref0.onKey,
-      onHide = _ref0.onHide,
-      onEnter = _ref0.onEnter,
-      _ref0$enterLabel = _ref0.enterLabel,
-      enterLabel = _ref0$enterLabel === void 0 ? 'OK' : _ref0$enterLabel,
-      _ref0$extra = _ref0.extra,
-      extra = _ref0$extra === void 0 ? '' : _ref0$extra;
-    var _useState1 = useState('off'),
-      _useState10 = _slicedToArray(_useState1, 2),
-      shift = _useState10[0],
-      setShift = _useState10[1]; // off | on | lock
-    var _useState11 = useState(false),
-      _useState12 = _slicedToArray(_useState11, 2),
-      sym = _useState12[0],
-      setSym = _useState12[1];
-    var _useState13 = useState(null),
-      _useState14 = _slicedToArray(_useState13, 2),
-      pop = _useState14[0],
-      setPopRaw = _useState14[1]; // { opts, sel, x, y, w }
+  function OSK(_ref1) {
+    var onKey = _ref1.onKey,
+      onHide = _ref1.onHide,
+      onEnter = _ref1.onEnter,
+      _ref1$enterLabel = _ref1.enterLabel,
+      enterLabel = _ref1$enterLabel === void 0 ? 'OK' : _ref1$enterLabel,
+      _ref1$extra = _ref1.extra,
+      extra = _ref1$extra === void 0 ? '' : _ref1$extra;
+    var _useState17 = useState('off'),
+      _useState18 = _slicedToArray(_useState17, 2),
+      shift = _useState18[0],
+      setShift = _useState18[1]; // off | on | lock
+    var _useState19 = useState(false),
+      _useState20 = _slicedToArray(_useState19, 2),
+      sym = _useState20[0],
+      setSym = _useState20[1];
+    var _useState21 = useState(null),
+      _useState22 = _slicedToArray(_useState21, 2),
+      pop = _useState22[0],
+      setPopRaw = _useState22[1]; // { opts, sel, x, y, w }
     var popRef = useRef(null);
     var setPop = function setPop(p) {
       popRef.current = p;
@@ -863,7 +1115,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       cls: 'wide alt',
       label: 'Ukryj'
     }), K({
-      k: ','
+      k: '.'
     }), K({
       k: ' ',
       cls: 'space',
@@ -897,10 +1149,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       }, o);
     })));
   }
-  function Avatar(_ref1) {
-    var c = _ref1.c,
-      _ref1$size = _ref1.size,
-      size = _ref1$size === void 0 ? 52 : _ref1$size;
+  function Avatar(_ref10) {
+    var c = _ref10.c,
+      _ref10$size = _ref10.size,
+      size = _ref10$size === void 0 ? 52 : _ref10$size;
     var ini = c.name.split(' ').map(function (s) {
       return s[0];
     }).join('').slice(0, 2);
@@ -916,30 +1168,30 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
   }
 
   // Obszar przewijany z własnym wskaźnikiem (pasek z uchwytem, wygaszenie krawędzi, przycisk „więcej”)
-  function ScrollArea(_ref10) {
-    var _ref10$className = _ref10.className,
-      className = _ref10$className === void 0 ? '' : _ref10$className,
-      _ref10$variant = _ref10.variant,
-      variant = _ref10$variant === void 0 ? '' : _ref10$variant,
-      _ref10$more = _ref10.more,
-      more = _ref10$more === void 0 ? true : _ref10$more,
-      children = _ref10.children,
-      innerRef = _ref10.innerRef;
+  function ScrollArea(_ref11) {
+    var _ref11$className = _ref11.className,
+      className = _ref11$className === void 0 ? '' : _ref11$className,
+      _ref11$variant = _ref11.variant,
+      variant = _ref11$variant === void 0 ? '' : _ref11$variant,
+      _ref11$more = _ref11.more,
+      more = _ref11$more === void 0 ? true : _ref11$more,
+      children = _ref11.children,
+      innerRef = _ref11.innerRef;
     var ref = useRef(null);
-    var _useState15 = useState({
+    var _useState23 = useState({
         can: false,
         top: 0,
         h: 0,
         atTop: true,
         atEnd: true
       }),
-      _useState16 = _slicedToArray(_useState15, 2),
-      st = _useState16[0],
-      setSt = _useState16[1];
-    var _useState17 = useState(false),
-      _useState18 = _slicedToArray(_useState17, 2),
-      active = _useState18[0],
-      setActive = _useState18[1];
+      _useState24 = _slicedToArray(_useState23, 2),
+      st = _useState24[0],
+      setSt = _useState24[1];
+    var _useState25 = useState(false),
+      _useState26 = _slicedToArray(_useState25, 2),
+      active = _useState26[0],
+      setActive = _useState26[1];
     var T = useRef({});
     var measure = function measure() {
       var el = ref.current;
@@ -1022,15 +1274,15 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       var mv = function mv(ev) {
         el.scrollTop = s0 + (ev.clientY - y0) / sc * (range / Math.max(1, track));
       };
-      var _up = function up() {
+      var _up3 = function up() {
         window.removeEventListener('pointermove', mv);
-        window.removeEventListener('pointerup', _up);
+        window.removeEventListener('pointerup', _up3);
         T.current.a = setTimeout(function () {
           return setActive(false);
         }, 600);
       };
       window.addEventListener('pointermove', mv);
-      window.addEventListener('pointerup', _up);
+      window.addEventListener('pointerup', _up3);
     };
     var page = function page() {
       var el = ref.current;

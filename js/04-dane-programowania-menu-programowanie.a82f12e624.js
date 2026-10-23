@@ -20,11 +20,11 @@
   ];
   const UNITS = [
     { id: 'u1', name: 'szt', prec: '1', active: true },
-    { id: 'u2', name: 'kg', prec: '0,001', active: true },
+    { id: 'u2', name: 'kg', prec: '0.001', active: true },
     { id: 'u3', name: 'opak', prec: '1', active: true },
     { id: 'u4', name: 'PCE', prec: '1', active: true },
-    { id: 'u5', name: 'l', prec: '0,001', active: true },
-    { id: 'u6', name: 'm', prec: '0,01', active: false },
+    { id: 'u5', name: 'l', prec: '0.001', active: true },
+    { id: 'u6', name: 'm', prec: '0.01', active: false },
   ];
   const PERMS = ['Edycja walut', 'Edycja klientów', 'Edycja operatorów', 'Edycja profili operatorów', 'Edycja form płatności', 'Edycja asortymentów', 'Edycja towarów', 'Edycja stawek VAT', 'Edycja jednostek miary',
     'Storno pozycji', 'Anulowanie paragonu', 'Rabaty i narzuty', 'Zmiana ceny', 'Zwroty opakowań', 'Wpłata i wypłata z kasy', 'Otwarcie szuflady', 'Raport dobowy', 'Raporty okresowe', 'Ustawienia kasy', 'Archiwizacja i odzyskiwanie'];
@@ -86,5 +86,5 @@
   };
   window.addEventListener('storage', () => NP_PROG.reset());
   window.NP_PROG = NP_PROG;
-  window.NP_PROG_DATA = { PAY_KINDS, PAY_ICONS, PERMS, PERM_VALS, PRECS: ['1', '0,1', '0,01', '0,001'] };
+  window.NP_PROG_DATA = { PAY_KINDS, PAY_ICONS, PERMS, PERM_VALS, PRECS: ['1', '0.1', '0.01', '0.001'] };
 })();

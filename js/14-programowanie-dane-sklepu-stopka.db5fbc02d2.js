@@ -247,7 +247,7 @@ function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e 
               className: "np-rcpt foot"
             }, /*#__PURE__*/React.createElement("i", null, "\u2026 pozycje paragonu \u2026"), /*#__PURE__*/React.createElement("span", {
               className: "sum"
-            }, "SUMA PLN ", /*#__PURE__*/React.createElement("b", null, "24,99")), [f.l0, f.l1, f.l2, f.l3].filter(function (x) {
+            }, "SUMA PLN ", /*#__PURE__*/React.createElement("b", null, "24.99")), [f.l0, f.l1, f.l2, f.l3].filter(function (x) {
               return x.trim();
             }).map(function (x, i) {
               return /*#__PURE__*/React.createElement("span", {
@@ -1604,7 +1604,7 @@ function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e 
         title: "Rabat ID ".concat(i),
         desc: 'Poziom rabatu odczytany z karty (znak r w formacie)',
         mode: 'money',
-        initial: tbl[i] ? String(tbl[i]).replace('.', ',') : '',
+        initial: tbl[i] ? String(tbl[i]) : '',
         suffix: '%',
         confirmLabel: 'Zapisz',
         validate: function validate(x) {

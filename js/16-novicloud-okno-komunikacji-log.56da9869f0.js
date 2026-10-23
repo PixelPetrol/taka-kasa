@@ -284,7 +284,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           ui.close();
           ui.progressThen('Archiwizacja na serwer…', 'Wysyłanie bazy danych do NoviCloud', 2000, {
             title: 'Archiwizacja zakończona',
-            rows: [['Kopia', "BKP_".concat(new Date().toISOString().slice(0, 10), "_").concat(pad(new Date().getHours())).concat(pad(new Date().getMinutes()))], ['Rozmiar', '1,1 MB'], ['Konto', 'wtest']]
+            rows: [['Kopia', "BKP_".concat(new Date().toISOString().slice(0, 10), "_").concat(pad(new Date().getHours())).concat(pad(new Date().getMinutes()))], ['Rozmiar', '1.1 MB'], ['Konto', 'wtest']]
           });
           if (then) then();
         }
