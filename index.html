@@ -2539,6 +2539,16 @@ html.tk-lekko .np-toast{-webkit-backdrop-filter:none;backdrop-filter:none;backgr
 html.tk-lekko .np-fsheet-bg{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(236,238,241,.94)}
 html.tk-lekko.np-dark .np-fsheet-bg{background:rgba(11,12,14,.92)} /* ciemny motyw: tło strony #0B0C0E zamiast jasnego */
 </style>
+<style>/* poprawka makiety (od 2.1): „Zaokrąglone rogi ekranu” bez ramki (APK, ?ramka=0) nie działały —
+   .np-device.bare .np-screen{border-radius:0} wygrywa z html.np-round .np-screen. Zamiast przycinać cały ekran
+   (drogie na słabym GPU) czarne narożniki nakładką; promień jak w makiecie (--np-r-lg). */
+html.np-round .np-device.bare .np-screen-wrap::after{content:"";position:absolute;inset:0;z-index:2147483000;pointer-events:none;
+--r:var(--np-r-lg,20px);background:
+radial-gradient(circle at 100% 100%,transparent calc(var(--r) - .5px),#000 var(--r)) 0 0/var(--r) var(--r) no-repeat,
+radial-gradient(circle at 0 100%,transparent calc(var(--r) - .5px),#000 var(--r)) 100% 0/var(--r) var(--r) no-repeat,
+radial-gradient(circle at 100% 0,transparent calc(var(--r) - .5px),#000 var(--r)) 0 100%/var(--r) var(--r) no-repeat,
+radial-gradient(circle at 0 0,transparent calc(var(--r) - .5px),#000 var(--r)) 100% 100%/var(--r) var(--r) no-repeat}
+</style>
 </head>
 <body>
 <div id="root"><div class="np-preload"><div class="np-logo big">TAKA<b>KASA</b></div></div></div>
