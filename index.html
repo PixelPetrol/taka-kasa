@@ -2104,7 +2104,24 @@ html.np-noblur .np-fsheet{background:var(--npd-sheet,#F6F7F9)}
 html.np-noblur .np-toast{background:rgba(22,23,26,.97)}
 html.np-noblur .np-toast.t-err{background:#EF4219}
 html.np-noblur.np-dark .np-sheet-bg{background:rgba(0,0,0,.62)}
-html.np-noblur.np-dark .np-fsheet-bg{background:rgba(0,0,0,.5)}</style>
+html.np-noblur.np-dark .np-fsheet-bg{background:rgba(0,0,0,.5)}
+/* Menu › Szukaj funkcji */
+.np-msearch{display:flex;flex-direction:column;gap:12px;min-height:0}
+.np-msearch .np-search{flex:none}
+.np-msearch-list{flex:1;min-height:0}
+.np-msearch-it{width:100%;display:grid;grid-template-columns:40px minmax(0,1fr) 20px;align-items:center;gap:14px;min-height:64px;padding:8px 14px;border-radius:var(--np-r-md);background:var(--np-surface);box-shadow:var(--np-shadow-1);text-align:left;margin-bottom:6px}
+.np-msearch-it:active{background:var(--np-surface-2)}
+.np-msearch-tx{min-width:0;display:flex;flex-direction:column;gap:2px}
+.np-msearch-tx b{font-size:calc(17px * var(--np-ts,1));font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-msearch-tx b mark{background:var(--npd-mark,#FFE58A);color:inherit;border-radius:3px}
+.np-msearch-tx small{font-size:calc(13.5px * var(--np-ts,1));color:var(--np-ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-msearch-chev{width:18px;height:18px;color:var(--np-ink-3)}
+.np-mi.flash{animation:np-miflash 1.6s ease-out}
+@keyframes np-miflash{0%,40%{box-shadow:0 0 0 4px var(--np-blue)}100%{box-shadow:0 0 0 0 transparent}}
+/* Panel statusu: pozycja z błędem — cały kafelek czerwony */
+.np-sbp-it.t-err{background:var(--np-red);box-shadow:0 6px 18px rgba(239,66,25,.35)}
+.np-sbp-it.t-err .np-sbp-ic{background:rgba(255,255,255,.22);color:#fff}
+.np-sbp-it.t-err,.np-sbp-it.t-err *{color:#fff}</style>
 <style>/* KASA NEXT PRO — motyw ciemny. Klasa np-dark na <html> (Tweaks › Motyw albo Menu › Ustawienia › Parametry ogólne › Motyw).
    W nextpro.css kolory zależne od motywu mają postać var(--npd-…, kolor jasny) — tu są ich wartości ciemne. */
 html.np-dark{--npd-sel:rgba(240,122,26,.2);--npd-sel-b:rgba(240,122,26,.6);--npd-sel-i:#FFB273;--npd-log:#141518;--npd-orange-ink:#FF9F4D;--np-bg:#0B0C0E;--np-surface:#1A1B1F;--np-surface-2:#26282D;--np-ink:#F2F3F5;--np-ink-2:#A2A5AC;--np-ink-3:#6C6F77;--np-hair:rgba(255,255,255,.07);--np-hair-2:rgba(255,255,255,.13);--np-green-700:#1CA862;--np-teal-900:#0C4A52;--np-on-ink:#111215;--np-shadow-1:0 0 0 1px rgba(255,255,255,.045);--np-shadow-2:0 0 0 1px rgba(255,255,255,.05),0 12px 32px rgba(0,0,0,.3);--np-shadow-3:0 0 0 1px rgba(255,255,255,.09),0 30px 80px rgba(0,0,0,.65);
@@ -2548,12 +2565,12 @@ html.np-beauty body.np-bare{background:var(--np-bg)}
 
 <script src="js/01-piktogramy.50678bc646.js"></script>
 <script src="js/02-kasa-next-max-uklad.c590ef048f.js"></script>
-<script src="js/03-dane-demo-formatery-plain.f011b2c908.js"></script>
+<script src="js/03-dane-demo-formatery-plain.dafc82da55.js"></script>
 <script src="js/04-dane-programowania-menu-programowanie.a82f12e624.js"></script>
 <script src="js/05-qrcode.18ae399f81.js"></script>
 <script src="js/06-dane-demonstracyjne-raportow-paragony.c5d7d17e64.js"></script>
 <script src="js/07-tweaks-panel-jsx.887b17b4fc.js"></script>
-<script src="js/08-wspolne-komponenty-ui.3f9c1961ad.js"></script>
+<script src="js/08-wspolne-komponenty-ui.1ae4dfeb68.js"></script>
 <script src="js/09-ekran-logowania.f9ebbdcb30.js"></script>
 <script src="js/10-panele-programowalnych-kafelkow-6.ef588c5264.js"></script>
 <script src="js/11-karta-towaru-nowy-edycja.4e3f5bb267.js"></script>
@@ -2562,7 +2579,7 @@ html.np-beauty body.np-bare{background:var(--np-bg)}
 <script src="js/14-programowanie-dane-sklepu-stopka.db5fbc02d2.js"></script>
 <script src="js/15-raporty-miesieczny-okresowy-kasjerskie.5bae4c14af.js"></script>
 <script src="js/16-novicloud-okno-komunikacji-log.56da9869f0.js"></script>
-<script src="js/17-menu-novicloud-administracja-programowanie.0ad50cc2f2.js"></script>
+<script src="js/17-menu-novicloud-administracja-programowanie.4646b6cedd.js"></script>
 <script src="js/18-prawa-strona-pasek-sumy.0f447bf661.js"></script>
 <script src="js/19-platnosc-razem-z-platnoscia.917f658490.js"></script>
 <script src="js/20-plan-sali-model-sale.6a91a2248d.js"></script>
@@ -2582,7 +2599,8 @@ var NP_TWEAKS = /*EDITMODE-BEGIN*/{
   "hints": false,
   "hl": "fill",
   "font": "roboto",
-  "textSize": "big"
+  "textSize": "big",
+  "crkErr": false
 } /*EDITMODE-END*/;
 ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(NextProApp, {
   defaults: NP_TWEAKS

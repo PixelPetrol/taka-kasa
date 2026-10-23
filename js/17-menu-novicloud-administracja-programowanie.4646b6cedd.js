@@ -53,7 +53,13 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }) || SETTINGS[0];
     // Motyw bez zapisanej wartości → aktualny (z Tweaks)
     var get = function get(p) {
-      return p.id in vals ? vals[p.id] : p.id === 'theme' ? document.documentElement.classList.contains('np-dark') ? 'Ciemny' : 'Jasny' : p.def;
+      return p.id === 'crkSim' ? function () {
+        try {
+          return localStorage.getItem('nextpro.crkState') === 'err';
+        } catch (e) {
+          return false;
+        }
+      }() : p.id in vals ? vals[p.id] : p.id === 'theme' ? document.documentElement.classList.contains('np-dark') ? 'Ciemny' : 'Jasny' : p.def;
     };
     // Zmiany z zewnątrz (np. motyw z panelu Tweaks) — odśwież widok
     React.useEffect(function () {
@@ -78,6 +84,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         localStorage.setItem('nextpro.settings', JSON.stringify(nv));
       } catch (e) {}
       setVals(nv);
+      if (id === 'crkSim') {
+        try {
+          localStorage.setItem('nextpro.crkState', v ? 'err' : 'ok');
+        } catch (e) {}
+        window.dispatchEvent(new Event('np-status'));
+      }
       window.dispatchEvent(new Event('np-settings'));
     };
     var editNum = function editNum(p) {
@@ -1151,41 +1163,171 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       name: "log-out"
     }), "Wyloguj")));
   }
-  function MenuView(_ref24) {
-    var cashier = _ref24.cashier,
-      onAction = _ref24.onAction,
-      onLogout = _ref24.onLogout,
-      ui = _ref24.ui,
-      _ref24$exitLabel = _ref24.exitLabel,
-      exitLabel = _ref24$exitLabel === void 0 ? 'Wyloguj' : _ref24$exitLabel;
+
+  // ── Szukaj funkcji: pozycje Menu + parametry Ustawień, ze ścieżką; dotknięcie przenosi na miejsce ──
+  function menuIndex(svcOn) {
     var _NP_DATA5 = NP_DATA,
-      MENU = _NP_DATA5.MENU;
-    var _useState1 = useState('admin'),
+      MENU = _NP_DATA5.MENU,
+      SETTINGS = _NP_DATA5.SETTINGS;
+    var out = [];
+    MENU.forEach(function (c) {
+      return c.items.filter(function (it) {
+        return !it.svc || svcOn;
+      }).forEach(function (it) {
+        return out.push({
+          kind: 'menu',
+          cat: c.id,
+          label: it.label,
+          icon: it.icon,
+          color: c.color,
+          path: ['Menu', c.label]
+        });
+      });
+    });
+    (SETTINGS || []).forEach(function (s) {
+      return (s.params || []).filter(function (p) {
+        return !p.hidden;
+      }).forEach(function (p) {
+        return out.push({
+          kind: 'set',
+          setCat: s.id,
+          label: p.label,
+          icon: s.icon,
+          color: s.color,
+          path: ['Menu', 'Administracja', 'Ustawienia', s.label],
+          kw: p.desc || ''
+        });
+      });
+    });
+    return out;
+  }
+  function MenuSearch(_ref24) {
+    var svcOn = _ref24.svcOn,
+      onGo = _ref24.onGo;
+    var _useState1 = useState(''),
       _useState10 = _slicedToArray(_useState1, 2),
-      cat = _useState10[0],
-      setCat = _useState10[1]; // wejście do Menu zawsze na Administracji (główny ekran Menu)
-    var _useState11 = useState(null),
+      q = _useState10[0],
+      setQ = _useState10[1];
+    var _useState11 = useState(true),
       _useState12 = _slicedToArray(_useState11, 2),
-      sub = _useState12[0],
-      setSub = _useState12[1]; // null | {type:'settings'} | {type:'list', id} | {type:'prog', id}
-    var _useState13 = useState(null),
+      osk = _useState12[0],
+      setOsk = _useState12[1];
+    var inRef = React.useRef(null);
+    var all = React.useMemo(function () {
+      return menuIndex(svcOn);
+    }, [svcOn]);
+    var nq = NPF.norm(q.trim());
+    var res = nq ? all.filter(function (r) {
+      return NPF.norm(r.label).includes(nq) || NPF.norm(r.path.join(' ')).includes(nq);
+    }).sort(function (a, b) {
+      return (NPF.norm(a.label).startsWith(nq) ? 0 : 1) - (NPF.norm(b.label).startsWith(nq) ? 0 : 1);
+    }) : [];
+    var hl = function hl(t) {
+      var i = NPF.norm(t).indexOf(nq);
+      return !nq || i < 0 ? t : /*#__PURE__*/React.createElement(React.Fragment, null, t.slice(0, i), /*#__PURE__*/React.createElement("mark", null, t.slice(i, i + nq.length)), t.slice(i + nq.length));
+    };
+    var key = function key(k) {
+      if (k === 'BACK') setQ(function (s) {
+        return s.slice(0, -1);
+      });else if (k === 'CLEAR') setQ('');else setQ(function (s) {
+        return (s + k).slice(0, 40);
+      });
+    };
+    return /*#__PURE__*/React.createElement("div", {
+      className: "np-menu-main np-msearch"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "np-menu-title"
+    }, "Szukaj funkcji"), /*#__PURE__*/React.createElement("label", {
+      className: 'np-search' + (osk ? ' focus' : '')
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "search"
+    }), /*#__PURE__*/React.createElement("input", {
+      ref: inRef,
+      inputMode: "none",
+      value: q,
+      placeholder: "Wpisz nazw\u0119 funkcji, np. raport, stawki, NIP",
+      onFocus: function onFocus() {
+        return setOsk(true);
+      },
+      onChange: function onChange(e) {
+        return setQ(e.target.value);
+      }
+    }), q && /*#__PURE__*/React.createElement("button", {
+      className: "np-search-x",
+      onClick: function onClick() {
+        return setQ('');
+      },
+      "aria-label": "Wyczy\u015B\u0107"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "x"
+    }))), /*#__PURE__*/React.createElement(ScrollArea, {
+      key: nq,
+      className: "np-msearch-list",
+      more: false
+    }, !nq ? /*#__PURE__*/React.createElement("div", {
+      className: "np-glist-empty"
+    }, "Wpisz kilka liter nazwy funkcji. Wyniki poka\u017C\u0105, gdzie w Menu jest dana funkcja.") : res.length === 0 ? /*#__PURE__*/React.createElement("div", {
+      className: "np-glist-empty"
+    }, "Brak funkcji pasuj\u0105cych do \u201E", q.trim(), "\u201D") : res.map(function (r, i) {
+      return /*#__PURE__*/React.createElement("button", {
+        key: i,
+        className: "np-msearch-it",
+        onClick: function onClick() {
+          return onGo(r);
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        className: 'np-side-chip bg-' + r.color
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: r.icon
+      })), /*#__PURE__*/React.createElement("span", {
+        className: "np-msearch-tx"
+      }, /*#__PURE__*/React.createElement("b", null, hl(r.label)), /*#__PURE__*/React.createElement("small", null, r.path.join(' › '))), /*#__PURE__*/React.createElement(Icon, {
+        name: "chevron-right",
+        className: "np-msearch-chev"
+      }));
+    })), osk && /*#__PURE__*/React.createElement(OSK, {
+      onKey: key,
+      onHide: function onHide() {
+        setOsk(false);
+        if (inRef.current) inRef.current.blur();
+      }
+    }));
+  }
+  function MenuView(_ref25) {
+    var cashier = _ref25.cashier,
+      onAction = _ref25.onAction,
+      onLogout = _ref25.onLogout,
+      ui = _ref25.ui,
+      _ref25$exitLabel = _ref25.exitLabel,
+      exitLabel = _ref25$exitLabel === void 0 ? 'Wyloguj' : _ref25$exitLabel;
+    var _NP_DATA6 = NP_DATA,
+      MENU = _NP_DATA6.MENU;
+    var _useState13 = useState('admin'),
       _useState14 = _slicedToArray(_useState13, 2),
-      form = _useState14[0],
-      setForm = _useState14[1];
+      cat = _useState14[0],
+      setCat = _useState14[1]; // wejście do Menu zawsze na Administracji (główny ekran Menu)
     var _useState15 = useState(null),
       _useState16 = _slicedToArray(_useState15, 2),
-      cloudRun = _useState16[0],
-      setCloudRun = _useState16[1];
-    var _useState17 = useState(false),
+      sub = _useState16[0],
+      setSub = _useState16[1]; // null | {type:'settings'} | {type:'list', id} | {type:'prog', id}
+    var _useState17 = useState(null),
       _useState18 = _slicedToArray(_useState17, 2),
-      autoRc = _useState18[0],
-      setAutoRc = _useState18[1];
-    var _useState19 = useState(function () {
+      form = _useState18[0],
+      setForm = _useState18[1];
+    var _useState19 = useState(null),
+      _useState20 = _slicedToArray(_useState19, 2),
+      cloudRun = _useState20[0],
+      setCloudRun = _useState20[1];
+    var _useState21 = useState(false),
+      _useState22 = _slicedToArray(_useState21, 2),
+      autoRc = _useState22[0],
+      setAutoRc = _useState22[1];
+    var _useState23 = useState(function () {
         return NP_SVC.on();
       }),
-      _useState20 = _slicedToArray(_useState19, 2),
-      svcOn = _useState20[0],
-      setSvcOn = _useState20[1];
+      _useState24 = _slicedToArray(_useState23, 2),
+      svcOn = _useState24[0],
+      setSvcOn = _useState24[1];
     React.useEffect(function () {
       var h = function h() {
         return setSvcOn(NP_SVC.on());
@@ -1218,6 +1360,27 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var c = MENU.find(function (m) {
       return m.id === cat;
     }) || MENU[0];
+    var _useState25 = useState(null),
+      _useState26 = _slicedToArray(_useState25, 2),
+      flashIt = _useState26[0],
+      setFlashIt = _useState26[1];
+    var goTo = function goTo(r) {
+      if (r.kind === 'set') {
+        try {
+          localStorage.setItem('nextpro.setCat', JSON.stringify(r.setCat));
+        } catch (e) {}
+        setCat('admin');
+        setSub({
+          type: 'settings'
+        });
+        return;
+      }
+      setCat(r.cat);
+      setFlashIt(r.cat + ':' + r.label);
+      setTimeout(function () {
+        return setFlashIt(null);
+      }, 1800);
+    };
     var act = function act(it) {
       var a = it.action || '';
       if (c.id === 'cloud' && !cloud.logged) {
@@ -1384,10 +1547,19 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-menu"
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-side"
-    }, MENU.map(function (m) {
+    }, /*#__PURE__*/React.createElement("button", {
+      className: 'np-side-item' + (cat === 'search' ? ' on' : ''),
+      onClick: function onClick() {
+        return setCat('search');
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "np-side-chip bg-gray"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "search"
+    })), /*#__PURE__*/React.createElement("span", null, "Szukaj funkcji")), MENU.map(function (m) {
       return /*#__PURE__*/React.createElement("button", {
         key: m.id,
-        className: 'np-side-item' + (m.id === c.id ? ' on' : ''),
+        className: 'np-side-item' + (cat !== 'search' && m.id === c.id ? ' on' : ''),
         onClick: function onClick() {
           return setCat(m.id);
         }
@@ -1410,7 +1582,10 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-side-chip bg-red"
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "log-out"
-    })), /*#__PURE__*/React.createElement("span", null, exitLabel)))), /*#__PURE__*/React.createElement("div", {
+    })), /*#__PURE__*/React.createElement("span", null, exitLabel)))), cat === 'search' ? /*#__PURE__*/React.createElement(MenuSearch, {
+      svcOn: svcOn,
+      onGo: goTo
+    }) : /*#__PURE__*/React.createElement("div", {
       className: "np-menu-main"
     }, /*#__PURE__*/React.createElement("div", {
       className: "np-menu-title"
@@ -1427,7 +1602,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     }).map(function (it, i) {
       return /*#__PURE__*/React.createElement("button", {
         key: c.id + i,
-        className: 'np-mi' + (it.color ? ' c-' + it.color : ''),
+        className: 'np-mi' + (it.color ? ' c-' + it.color : '') + (flashIt === c.id + ':' + it.label ? ' flash' : ''),
         onClick: function onClick() {
           return act(it);
         }

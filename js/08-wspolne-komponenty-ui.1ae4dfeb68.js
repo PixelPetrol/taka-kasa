@@ -269,6 +269,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     'chevron-down': S('<path d="m6 9 6 6 6-6"/>'),
     landmark: S('<path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="m12 2 8 5H4Z"/>'),
     unlink: S('<path d="m18.84 12.25 1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71"/><path d="M8 2v3M2 8h3M16 22v-3M22 16h-3"/>'),
+    'ticket-percent': S('<path d="M2 9a3 3 0 1 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 1 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M9 9h.01"/><path d="m15 9-6 6"/><path d="M15 15h.01"/>'),
     database: S('<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>'),
     'cloud-ok': S('<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><path d="m9.5 13.5 2 2 3.5-3.5"/>'),
     'file-check': S('<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/>'),
@@ -390,11 +391,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       sub: 'Sygnał dobry · IP 192.168.1.24'
     }, {
       id: 'eur',
-      icon: 'euro',
+      icon: 'ticket-percent',
       tone: 'info',
-      title: 'Europlatform',
-      val: 'Włączona',
-      sub: 'Kurs EUR 4.32 · przeliczanie na paragonie'
+      title: 'EuroPlatform',
+      val: '12 promocji aktywnych',
+      sub: 'Wielopaki i rabaty od Organizatora Sieci · aktualizacja ' + NPF.time(new Date(now - 26 * 60000))
     }, {
       id: 'pwr',
       icon: 'plug',
@@ -595,9 +596,11 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-status-date"
     }, /*#__PURE__*/React.createElement("span", null, NPF.dateLong(now)), NPF.time(now)), /*#__PURE__*/React.createElement("div", {
       className: "np-status-icons"
+    }, /*#__PURE__*/React.createElement("span", {
+      title: "EuroPlatform: promocje aktywne"
     }, /*#__PURE__*/React.createElement(Icon, {
-      name: "euro"
-    }), /*#__PURE__*/React.createElement("span", {
+      name: "ticket-percent"
+    })), /*#__PURE__*/React.createElement("span", {
       title: "NoviCloud"
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "link"

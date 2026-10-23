@@ -388,6 +388,7 @@
       { id: 'ksmPort', label: 'Port', type: 'num', def: 8080, max: 5, desc: 'Port komunikacji.' },
     ] },
     { id: 'robocze', label: 'ROBOCZE TESTOWE', icon: 'sliders-horizontal', color: 'orange', desc: 'Ustawienia interfejsu dodane w prototypie — do testów i prezentacji.', params: [
+      { id: 'crkSim', label: 'Symulacja: błąd komunikacji z CRK', type: 'toggle', def: false, desc: 'WYŁ (domyślnie) – repozytorium działa poprawnie. WŁ – symulacja braku komunikacji z CRK: czerwona, migająca ikona w pasku statusu i opis błędu w panelu statusu. Tylko do testów i prezentacji.' },
       { id: 'theme', label: 'Motyw', type: 'select', def: 'Jasny', options: ['Jasny', 'Ciemny', 'Beauty (róż)'], desc: 'Jasny (domyślnie) – jasne tło, najlepiej czytelny w dobrze oświetlonym sklepie. Ciemny – ciemne tło i jasny tekst; mniej razi wieczorem i w słabym świetle. Beauty (róż) – jasny, różowy motyw dla salonów i sklepów kosmetycznych.' },
       { id: 'uiScale', label: 'Wielkość interfejsu', type: 'select', def: '100% (standard)', options: ['90% — więcej miejsca', '100% (standard)', '110%', '120%'], desc: 'Powiększa lub pomniejsza cały ekran: kafelki, klawisze, teksty i odstępy razem, w tych samych proporcjach. Przy większych wartościach mieści się mniej pozycji naraz.' },
       { id: 'font', label: 'Czcionka', type: 'select', def: 'Roboto', options: ['Geist', 'Roboto'], desc: 'Krój pisma całego interfejsu. Roboto (domyślnie) – klasyczny krój Androida, znany z kas NEXT. Geist – nowoczesny, wąski.' },
