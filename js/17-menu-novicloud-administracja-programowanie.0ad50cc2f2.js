@@ -1028,7 +1028,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className: "np-about-prod"
     }, /*#__PURE__*/React.createElement("span", null, "Producentem programu jest"), /*#__PURE__*/React.createElement("b", null, "INSOFT sp. z o.o."), /*#__PURE__*/React.createElement("span", null, "Krak\xF3w, ul. Jasna 3A"), /*#__PURE__*/React.createElement("span", null, "www.insoft.com.pl")), /*#__PURE__*/React.createElement("div", {
       className: "np-about-prod ux"
-    }, /*#__PURE__*/React.createElement("span", null, "Projekt interfejsu"), /*#__PURE__*/React.createElement("b", null, "NOVITUS"), /*#__PURE__*/React.createElement("span", null, "Piotr Korona")))), xml && /*#__PURE__*/React.createElement(OnScreen, null, /*#__PURE__*/React.createElement(Sheet, {
+    }, /*#__PURE__*/React.createElement("span", null, "Projekt interfejsu"), /*#__PURE__*/React.createElement("b", null, "NOVITUS"), /*#__PURE__*/React.createElement("span", null, "Piotr Korona"), /*#__PURE__*/React.createElement("span", null, "Mateusz Stal")))), xml && /*#__PURE__*/React.createElement(OnScreen, null, /*#__PURE__*/React.createElement(Sheet, {
       className: "np-rp-doc wide",
       onClose: function onClose() {
         return setXml(false);

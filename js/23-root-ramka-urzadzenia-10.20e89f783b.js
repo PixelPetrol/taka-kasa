@@ -60,7 +60,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       qty: s.qtyKeys === 'Pigułki' ? 'pill' : s.qtyKeys === 'Płytki' ? 'slab' : null,
       hl: s.hlLast === 'Brak' ? 'none' : s.hlLast === 'Obramowanie' ? 'border' : s.hlLast === 'Wypełnienie' ? 'fill' : null,
       prices: s.tilePrices === true,
-      round: s.roundScreen !== 'Wyłączone',
+      blur: s.bgBlur === 'Rozmycie',
       theme: s.theme === 'Ciemny' ? 'dark' : s.theme === 'Beauty (róż)' ? 'beauty' : s.theme === 'Jasny' ? 'light' : null
     };
   }
@@ -89,7 +89,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       };
       var skip = first.current || !document.startViewTransition || root.classList.contains('np-dark') === dark && root.classList.contains('np-beauty') === beauty;
       first.current = false;
-      if (skip) apply();else document.startViewTransition(apply);
+      if (skip) apply();else {
+        var vt = document.startViewTransition(apply);
+        [vt.ready, vt.finished, vt.updateCallbackDone].forEach(function (p) {
+          return p && p["catch"](function () {});
+        });
+      }
     }, [theme]);
   }
   function useUiPrefs() {
@@ -118,8 +123,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       document.documentElement.classList.toggle('np-big', !!prefs.big);
     }, [prefs.big]);
     useEffect(function () {
-      document.documentElement.classList.toggle('np-round', !!prefs.round);
-    }, [prefs.round]);
+      document.documentElement.classList.toggle('np-noblur', !prefs.blur);
+    }, [prefs.blur]);
     var us = prefs.ui;
     var scrRef = React.useRef(null);
     useAutoFitLabels(scrRef);
@@ -266,9 +271,6 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     useEffect(function () {
       document.documentElement.classList.toggle('np-big', !!prefs.big);
     }, [prefs.big]);
-    useEffect(function () {
-      document.documentElement.classList.toggle('np-round', !!prefs.round);
-    }, [prefs.round]);
     var gs = useNpSettings();
     var theme = prefs.theme || (t.theme === 'dark' || t.theme === 'beauty' ? t.theme : 'light');
     useTheme(theme);
@@ -387,6 +389,19 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         setTweak('theme', v);
         npSetSetting('theme', v === 'dark' ? 'Ciemny' : v === 'beauty' ? 'Beauty (róż)' : 'Jasny');
       }
+    }), /*#__PURE__*/React.createElement(TweakRadio, {
+      label: "T\u0142o pod okienkami",
+      value: uiP.blur ? 'blur' : 'dim',
+      options: [{
+        value: 'dim',
+        label: 'Przyciemnienie'
+      }, {
+        value: 'blur',
+        label: 'Rozmycie'
+      }],
+      onChange: function onChange(v) {
+        return npSetSetting('bgBlur', v === 'blur' ? 'Rozmycie' : 'Przyciemnienie');
+      }
     }), /*#__PURE__*/React.createElement(TweakToggle, {
       label: "Symulacja: b\u0142\u0105d komunikacji z CRK",
       value: t.crkErr === true,
@@ -396,12 +411,6 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
           localStorage.setItem('nextpro.crkState', v ? 'err' : 'ok');
         } catch (e) {}
         window.dispatchEvent(new Event('np-status'));
-      }
-    }), /*#__PURE__*/React.createElement(TweakToggle, {
-      label: "Zaokr\u0105glone rogi ekranu",
-      value: uiP.round,
-      onChange: function onChange(v) {
-        return npSetSetting('roundScreen', v ? 'Włączone' : 'Wyłączone');
       }
     }), /*#__PURE__*/React.createElement(TweakSection, {
       label: "Uk\u0142ad ekranu sprzeda\u017Cy"

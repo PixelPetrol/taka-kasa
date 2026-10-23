@@ -2046,10 +2046,6 @@ html.np-roboto body{font-family:var(--np-font)}
 .np-qa-side{min-height:0;overflow-y:auto;border-left:0}
 .np-qa-side .np-side-item small{margin-left:auto;font-size:calc(13px * var(--np-ts,1));color:var(--np-ink-3);font-variant-numeric:tabular-nums}
 .np-qa-side .np-side-item.on small{color:inherit;opacity:.75}
-/* sztucznie zaokrąglone rogi ekranu (Ustawienia › Parametry ogólne / Tweaks) — narożniki czarne */
-html.np-round .np-screen-wrap{background:#000}
-html.np-round .np-screen{border-radius:var(--np-r-lg)}
-html.np-round body.np-bare{background:#000}
 /* pytanie o układ kafelków po instalacji */
 .np-preset-bg{z-index:200}
 .np-preset{width:min(640px,calc(100% - 24px));padding:28px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
@@ -2057,7 +2053,8 @@ html.np-round body.np-bare{background:#000}
 .np-preset-ic .np-ico{width:32px;height:32px}
 .np-preset-desc{max-width:520px;font-size:calc(16px * var(--np-ts,1));line-height:1.4;color:var(--np-ink-2);text-wrap:pretty}
 .np-preset-acts{align-self:stretch;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-.np-preset-acts .np-btn{height:76px;flex-direction:column;gap:3px}
+.np-preset-acts .np-btn{height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;white-space:normal;text-align:center}
+.np-preset-acts .np-btn b,.np-preset-acts .np-btn small{display:block;max-width:100%;white-space:normal;overflow:visible}
 .np-preset-acts .np-btn b{font-size:calc(18px * var(--np-ts,1));font-weight:650}
 .np-preset-acts .np-btn small{font-size:calc(13.5px * var(--np-ts,1));opacity:.8}
 /* panel statusu (wysuwany z góry) */
@@ -2093,10 +2090,24 @@ html.np-round body.np-bare{background:#000}
 .np-status-icons > span:not(.np-batt){display:inline-flex}
 .np-sb-err{color:var(--np-red);animation:np-sberr 1.6s steps(1) infinite}
 @keyframes np-sberr{50%{opacity:0}}
-.np-sbp-ok.err{background:var(--npd-red-t,#FFE9E3);color:var(--np-red)}</style>
+.np-sbp-ok.err{background:var(--npd-red-t,#FFE9E3);color:var(--np-red)}
+/* większe komunikaty (np. „Brak towaru o kodzie…”) */
+.np-toast{top:56px;gap:14px;max-width:1000px;min-height:64px;padding:14px 30px 14px 22px;font-size:calc(22px * var(--np-ts,1));font-weight:600;box-shadow:0 12px 36px rgba(0,0,0,.28)}
+.np-toast .np-ico{width:28px;height:28px}
+.np-toast.t-err{min-height:72px;font-size:calc(24px * var(--np-ts,1))}
+.np-toast.t-err .np-ico{width:32px;height:32px}
+/* Tło pod okienkami: Przyciemnienie (bez rozmycia — lżejsze dla GPU) — Ustawienia › Parametry ogólne */
+html.np-noblur *,html.np-noblur *::before,html.np-noblur *::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html.np-noblur .np-sheet-bg{background:rgba(18,20,24,.52)}
+html.np-noblur .np-fsheet-bg{background:rgba(18,20,24,.4)}
+html.np-noblur .np-fsheet{background:var(--npd-sheet,#F6F7F9)}
+html.np-noblur .np-toast{background:rgba(22,23,26,.97)}
+html.np-noblur .np-toast.t-err{background:#EF4219}
+html.np-noblur.np-dark .np-sheet-bg{background:rgba(0,0,0,.62)}
+html.np-noblur.np-dark .np-fsheet-bg{background:rgba(0,0,0,.5)}</style>
 <style>/* KASA NEXT PRO — motyw ciemny. Klasa np-dark na <html> (Tweaks › Motyw albo Menu › Ustawienia › Parametry ogólne › Motyw).
    W nextpro.css kolory zależne od motywu mają postać var(--npd-…, kolor jasny) — tu są ich wartości ciemne. */
-html.np-dark{--npd-sel:rgba(240,122,26,.2);--npd-sel-b:rgba(240,122,26,.6);--npd-sel-i:#FFB273;--npd-log:#141518;--npd-orange-ink:#FF9F4D;--np-gray:#4A4C52;--np-bg:#0B0C0E;--np-surface:#1A1B1F;--np-surface-2:#26282D;--np-ink:#F2F3F5;--np-ink-2:#A2A5AC;--np-ink-3:#6C6F77;--np-hair:rgba(255,255,255,.07);--np-hair-2:rgba(255,255,255,.13);--np-red:#F0461E;--np-orange:#F2801F;--np-green:#22BF6F;--np-green-700:#1CA862;--np-blue:#2B8AFF;--np-teal:#31767D;--np-teal-900:#0C4A52;--np-graphite:#2E3035;--np-on-ink:#111215;--np-shadow-1:0 0 0 1px rgba(255,255,255,.045);--np-shadow-2:0 0 0 1px rgba(255,255,255,.05),0 12px 32px rgba(0,0,0,.3);--np-shadow-3:0 0 0 1px rgba(255,255,255,.09),0 30px 80px rgba(0,0,0,.65);
+html.np-dark{--npd-sel:rgba(240,122,26,.2);--npd-sel-b:rgba(240,122,26,.6);--npd-sel-i:#FFB273;--npd-log:#141518;--npd-orange-ink:#FF9F4D;--np-bg:#0B0C0E;--np-surface:#1A1B1F;--np-surface-2:#26282D;--np-ink:#F2F3F5;--np-ink-2:#A2A5AC;--np-ink-3:#6C6F77;--np-hair:rgba(255,255,255,.07);--np-hair-2:rgba(255,255,255,.13);--np-green-700:#1CA862;--np-teal-900:#0C4A52;--np-on-ink:#111215;--np-shadow-1:0 0 0 1px rgba(255,255,255,.045);--np-shadow-2:0 0 0 1px rgba(255,255,255,.05),0 12px 32px rgba(0,0,0,.3);--np-shadow-3:0 0 0 1px rgba(255,255,255,.09),0 30px 80px rgba(0,0,0,.65);
 --npd-tint:255,255,255;--npd-press:#313338;--npd-fill:rgba(255,255,255,.06);--npd-btn:#2E3035;--npd-switch:#3A3C42;--npd-track:#2C2E33;--npd-off:#26282D;--npd-rm:#5B5E65;--npd-dot:#3B3E45;--npd-osk:#141518;--npd-osk-k:#34363C;--npd-osk-alt:#25272B;--npd-osk-on:#4B4E55;--npd-sheet:#17181B;--npd-scrim:rgba(0,0,0,.52);--npd-frost-bg:rgba(11,12,14,.55);--npd-frost:rgba(30,31,35,.86);--npd-toast:rgba(56,58,64,.96);--npd-key-sh:rgba(0,0,0,.45);--npd-focus:#33353B;--npd-hero:#0B0C0E;--npd-on-ink-2:rgba(17,18,21,.6);--npd-seg-on:#3E4046;--npd-swatch-ring:rgba(255,255,255,.1);--npd-tile-sh:inset 0 1px 0 rgba(255,255,255,.07);--npd-qb-sh:0 0 0 1px rgba(255,255,255,.06);--npd-mark:rgba(255,204,0,.32);--npd-flash:rgba(34,191,111,.32);
 --npd-green-t:rgba(34,191,111,.17);--npd-green-i:#5BDE9C;--npd-green-t2:rgba(91,222,156,.14);--npd-orange-t:rgba(242,128,31,.17);--npd-orange-i:#FFAD69;--npd-red-t:rgba(240,70,30,.17);--npd-red-i:#FF8B70;--npd-red-t2:rgba(240,70,30,.3);--npd-blue-t:rgba(43,138,255,.17);--npd-blue-i:#7DB5FF;--npd-blue-t2:rgba(125,181,255,.14);--npd-amber-t:rgba(242,160,40,.13);--npd-amber-b:rgba(242,160,40,.5);--npd-amber-i:#FFC266}
 html.np-dark,html.np-dark body{background:#FFFFFF} /* podłoże za ramką kasy zawsze białe */
@@ -2109,20 +2120,17 @@ html.np-dark body.np-bare{background:var(--np-bg)}
 .np-dark .np-razem:disabled{color:rgba(255,255,255,.3)}
 /* Płynne przejście przy zmianie motywu */
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.2s}
+
+/* kolory (szary, czerwony, pomarańczowy, zielony, niebieski, teal, grafit) jak w motywie jasnym — wszędzie, w każdym motywie */
 </style>
 <style>/* KASA NEXT MAX — motyw „Beauty” (jasny róż). Klasa np-beauty na <html>; nadpisuje zmienne motywu jasnego. */
-html.np-beauty{--np-bg:#F5DFE8;--np-surface:#FFFFFF;--np-surface-2:#FCF1F5;--np-ink:#2A1720;--np-ink-2:#6E5560;--np-ink-3:#A68E98;--np-hair:rgba(120,30,70,.09);--np-hair-2:rgba(120,30,70,.16);--np-gray:#8A6F7B;--np-graphite:#4A2E3B;--np-blue:#D6457A;--np-teal:#B0577E;--np-teal-900:#5A1E39;
+html.np-beauty{--np-bg:#F5DFE8;--np-surface:#FFFFFF;--np-surface-2:#FCF1F5;--np-ink:#2A1720;--np-ink-2:#6E5560;--np-ink-3:#A68E98;--np-hair:rgba(120,30,70,.09);--np-hair-2:rgba(120,30,70,.16);--np-teal-900:#5A1E39;
 --npd-blue-t:#FCE3EC;--npd-blue-i:#A8285A;--npd-sel:rgba(214,69,122,.14);--npd-sel-b:rgba(214,69,122,.55);--npd-sel-i:#A8285A;--npd-osk:#F1D9E3;--npd-osk-k:#FFFFFF;--npd-osk-alt:#E6C4D2;--npd-sheet:#FDF4F7;--npd-track:#F1D9E3;--npd-seg-on:#FFFFFF;--npd-focus:rgba(214,69,122,.35);
 --np-shadow-1:0 1px 2px rgba(90,20,50,.08),0 0 0 .5px rgba(90,20,50,.05);--np-shadow-2:0 6px 20px rgba(90,20,50,.07),0 1px 2px rgba(90,20,50,.06);--np-shadow-3:0 30px 80px rgba(90,20,50,.22),0 2px 8px rgba(90,20,50,.08)}
 html.np-beauty,html.np-beauty body{background:#FFFFFF}
 /* pole paragonu: delikatny róż, jaśniejszy od tła */
 html.np-beauty .np-sumcard,html.np-beauty .np-lines-card{background:#FFF5F9}
 html.np-beauty body.np-bare{background:var(--np-bg)}
-/* kolory kafelków do zaprogramowania zostają rozróżnialne: niebieski i teal jak w motywie jasnym */
-html.np-beauty .np-tile.c-blue,html.np-beauty .np-swatch.c-blue,html.np-beauty .bg-blue{background:#0A7CFF}
-html.np-beauty .np-tile.c-teal,html.np-beauty .np-swatch.c-teal,html.np-beauty .bg-teal{background:#2E6B72}
-html.np-beauty .np-tile.c-gray,html.np-beauty .np-swatch.c-gray,html.np-beauty .bg-gray{background:#6B6E74}
-html.np-beauty .np-tile.c-graphite,html.np-beauty .np-swatch.c-graphite,html.np-beauty .bg-graphite{background:#3A3B40}
 </style>
 <style>/* KASA NEXT PRO — Programowanie (tabele, formularze) */
 .np-prog .np-subhead{gap:10px}
@@ -2532,23 +2540,6 @@ html.np-beauty .np-tile.c-graphite,html.np-beauty .np-swatch.c-graphite,html.np-
 .np-rp-range .np-rp-dbtn{min-width:0;grid-template-columns:minmax(0,1fr) 24px}
 </style>
 
-<script>(function(){var q=/[?&]lekko=([01])/.exec(location.search);var on=q?q[1]==='1':!!document.querySelector('meta[name="standalone-mode"]');if(on)document.documentElement.classList.add('tk-lekko');})();</script>
-<style>/* tryb lekki — słabe GPU: bez backdrop-filter, w zamian mocniejsze tło */
-html.tk-lekko .np-sheet-bg{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(18,20,24,.45)}
-html.tk-lekko .np-toast{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgb(22,23,26)}
-html.tk-lekko .np-fsheet-bg{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(236,238,241,.94)}
-html.tk-lekko.np-dark .np-fsheet-bg{background:rgba(11,12,14,.92)} /* ciemny motyw: tło strony #0B0C0E zamiast jasnego */
-</style>
-<style>/* poprawka makiety (od 2.1): „Zaokrąglone rogi ekranu” bez ramki (APK, ?ramka=0) nie działały —
-   .np-device.bare .np-screen{border-radius:0} wygrywa z html.np-round .np-screen. Zamiast przycinać cały ekran
-   (drogie na słabym GPU) czarne narożniki nakładką; promień jak w makiecie (--np-r-lg). */
-html.np-round .np-device.bare .np-screen-wrap::after{content:"";position:absolute;inset:0;z-index:2147483000;pointer-events:none;
---r:var(--np-r-lg,20px);background:
-radial-gradient(circle at 100% 100%,transparent calc(var(--r) - .5px),#000 var(--r)) 0 0/var(--r) var(--r) no-repeat,
-radial-gradient(circle at 0 100%,transparent calc(var(--r) - .5px),#000 var(--r)) 100% 0/var(--r) var(--r) no-repeat,
-radial-gradient(circle at 100% 0,transparent calc(var(--r) - .5px),#000 var(--r)) 0 100%/var(--r) var(--r) no-repeat,
-radial-gradient(circle at 0 0,transparent calc(var(--r) - .5px),#000 var(--r)) 100% 100%/var(--r) var(--r) no-repeat}
-</style>
 </head>
 <body>
 <div id="root"><div class="np-preload"><div class="np-logo big">TAKA<b>KASA</b></div></div></div>
@@ -2557,12 +2548,12 @@ radial-gradient(circle at 0 0,transparent calc(var(--r) - .5px),#000 var(--r)) 1
 
 <script src="js/01-piktogramy.50678bc646.js"></script>
 <script src="js/02-kasa-next-max-uklad.c590ef048f.js"></script>
-<script src="js/03-dane-demo-formatery-plain.e180a79a10.js"></script>
+<script src="js/03-dane-demo-formatery-plain.f011b2c908.js"></script>
 <script src="js/04-dane-programowania-menu-programowanie.a82f12e624.js"></script>
 <script src="js/05-qrcode.18ae399f81.js"></script>
 <script src="js/06-dane-demonstracyjne-raportow-paragony.c5d7d17e64.js"></script>
 <script src="js/07-tweaks-panel-jsx.887b17b4fc.js"></script>
-<script src="js/08-wspolne-komponenty-ui.1f57bfad8f.js"></script>
+<script src="js/08-wspolne-komponenty-ui.3f9c1961ad.js"></script>
 <script src="js/09-ekran-logowania.f9ebbdcb30.js"></script>
 <script src="js/10-panele-programowalnych-kafelkow-6.ef588c5264.js"></script>
 <script src="js/11-karta-towaru-nowy-edycja.4e3f5bb267.js"></script>
@@ -2571,13 +2562,13 @@ radial-gradient(circle at 0 0,transparent calc(var(--r) - .5px),#000 var(--r)) 1
 <script src="js/14-programowanie-dane-sklepu-stopka.db5fbc02d2.js"></script>
 <script src="js/15-raporty-miesieczny-okresowy-kasjerskie.5bae4c14af.js"></script>
 <script src="js/16-novicloud-okno-komunikacji-log.56da9869f0.js"></script>
-<script src="js/17-menu-novicloud-administracja-programowanie.c41fb818a9.js"></script>
+<script src="js/17-menu-novicloud-administracja-programowanie.0ad50cc2f2.js"></script>
 <script src="js/18-prawa-strona-pasek-sumy.0f447bf661.js"></script>
 <script src="js/19-platnosc-razem-z-platnoscia.917f658490.js"></script>
 <script src="js/20-plan-sali-model-sale.6a91a2248d.js"></script>
 <script src="js/21-tryb-gastro-zakladka-gastro.5f0040c40f.js"></script>
 <script src="js/22-ekran-sprzedazy-logika-kasy.dedefdd51c.js"></script>
-<script src="js/23-root-ramka-urzadzenia-10.5b2f95a3e8.js"></script>
+<script src="js/23-root-ramka-urzadzenia-10.20e89f783b.js"></script>
 <script>
 "use strict";
 

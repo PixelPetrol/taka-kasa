@@ -450,16 +450,19 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       var _up = function up(ev) {
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', _up);
+        window.removeEventListener('pointercancel', _up);
         var d = (ev.clientY - S.y0) / S.sc;
-        if (d < -80) onClose();else setDy(0);
+        if (d < -60 || !S.mv) onClose();else setDy(0);
       };
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', _up);
+      window.addEventListener('pointercancel', _up);
     };
     var y = drag != null ? drag : dy;
     return /*#__PURE__*/React.createElement("div", {
       className: "np-sbp-wrap",
       onPointerDown: function onPointerDown(e) {
+        e.stopPropagation();
         if (e.target === e.currentTarget) onClose();
       }
     }, /*#__PURE__*/React.createElement("div", {
@@ -542,7 +545,7 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
     var S = useRef({}).current;
     var H = 560;
     var down = function down(e) {
-      if (e.target.closest('.np-logo')) return;
+      if (e.target.closest('.np-logo') || e.target.closest('.np-sbp-wrap')) return; // zdarzenia z panelu nie otwierają go ponownie
       var el = e.currentTarget;
       var sc = el.getBoundingClientRect().height / el.offsetHeight || 1;
       Object.assign(S, {
@@ -563,11 +566,12 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         var d = (ev.clientY - S.y0) / S.sc;
         if (S.mv) {
           setDrag(null);
-          setOpen(d > 90);
-        } else if (ev.target.closest && ev.target.closest('.np-status-icons, .np-status-date')) setOpen(true);
+          setOpen(d > 70);
+        } else setOpen(true);
       };
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', _up2);
+      window.addEventListener('pointercancel', _up2);
     };
     return /*#__PURE__*/React.createElement("div", {
       className: 'np-status' + (open || drag != null ? ' open' : ''),
@@ -732,19 +736,23 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
       className = _ref8$className === void 0 ? '' : _ref8$className,
       _ref8$labels = _ref8.labels,
       labels = _ref8$labels === void 0 ? {} : _ref8$labels;
-    var h = useRef(null);
+    var last = useRef({
+      t: 0,
+      id: -1
+    });
     var pd = function pd(e, k) {
       if (e.button && e.button > 0 || !k) return;
-      h.current = k;
+      var now = performance.now(); // ten sam palec / zdublowane zdarzenie w <35 ms — pomiń
+      if (e.pointerId === last.current.id && now - last.current.t < 35) return;
+      last.current = {
+        t: now,
+        id: e.pointerId
+      };
       onKey(k);
     };
-    var cl = function cl(k) {
-      if (h.current === k) {
-        h.current = null;
-        return;
-      }
-      if (k) onKey(k);
-    };
+    var cl = function cl(e, k) {
+      if (e.detail === 0 && k) onKey(k);
+    }; // tylko Enter/Spacja z klawiatury
     return /*#__PURE__*/React.createElement("div", {
       className: 'np-numpad ' + className
     }, keys.flat().map(function (k, i) {
@@ -755,8 +763,8 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
         onPointerDown: function onPointerDown(e) {
           return pd(e, k);
         },
-        onClick: function onClick() {
-          return cl(k);
+        onClick: function onClick(e) {
+          return cl(e, k);
         }
       }, k === 'BACK' ? /*#__PURE__*/React.createElement(Icon, {
         name: "backspace"
